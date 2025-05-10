@@ -1,3 +1,5 @@
+console.log("Main process started")
+
 import { app, BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 
@@ -31,9 +33,9 @@ class MainProcess {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
     
     this.mainWindow = new BrowserWindow({
-      width: 300,
-      height: 100,
-      x: width - 320,
+      width: 500,
+      height: 200,
+      x: width - 520,
       y: 20,
       frame: false,
       transparent: true,
@@ -51,10 +53,8 @@ class MainProcess {
     this.mainWindow.setIgnoreMouseEvents(true);
     // TODO: Add click-through toggle logic here
 
-    // Optional: Open DevTools in development
-    if (process.env.NODE_ENV === 'development') {
-      this.mainWindow.webContents.openDevTools();
-    }
+    // Always open DevTools for debugging
+    this.mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 }
 

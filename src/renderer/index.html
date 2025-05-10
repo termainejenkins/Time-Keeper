@@ -19,6 +19,13 @@
             padding: 10px;
             color: white;
             backdrop-filter: blur(5px);
+            border: 2px solid red;
+        }
+        .current-time, .next-event {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-align: center;
+            color: white;
         }
     </style>
     <!-- TODO: Add system tray integration -->
@@ -26,6 +33,6 @@
 </head>
 <body>
     <div id="root"></div>
-    <script src="./renderer.js"></script>
+    <script type="module" src="/main.tsx"></script>
 </body>
 </html> 

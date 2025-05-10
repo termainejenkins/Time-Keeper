@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+console.log("Main process started");
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
 class MainProcess {
@@ -59,9 +60,9 @@ class MainProcess {
     createWindow() {
         const { width, height } = electron_1.screen.getPrimaryDisplay().workAreaSize;
         this.mainWindow = new electron_1.BrowserWindow({
-            width: 300,
-            height: 100,
-            x: width - 320,
+            width: 500,
+            height: 200,
+            x: width - 520,
             y: 20,
             frame: false,
             transparent: true,
@@ -76,10 +77,8 @@ class MainProcess {
         // Make the window click-through
         this.mainWindow.setIgnoreMouseEvents(true);
         // TODO: Add click-through toggle logic here
-        // Optional: Open DevTools in development
-        if (process.env.NODE_ENV === 'development') {
-            this.mainWindow.webContents.openDevTools();
-        }
+        // Always open DevTools for debugging
+        this.mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
 }
 new MainProcess();
