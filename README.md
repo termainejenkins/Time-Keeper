@@ -2,6 +2,8 @@
 
 A minimalist desktop HUD application that syncs with Google Calendar and displays countdown timers for your tasks.
 
+**Author:** Termaine Jenkins (aka TJ)
+
 ## Features
 
 - Transparent, always-on-top HUD display
@@ -50,4 +52,10 @@ time-keeper/
 
 ## License
 
-MIT 
+MIT
+
+---
+
+## Author
+
+Created by **Termaine Jenkins** (aka **TJ**) 
