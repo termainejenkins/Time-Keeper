@@ -1,17 +1,231 @@
-import React from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
 
+const sections = [
+  { key: 'tasks', label: 'Tasks' },
+  { key: 'hud', label: 'HUD Options' },
+  { key: 'about', label: 'About' },
+];
+
+const defaultHudSettings = {
+  darkMode: false,
+  showCurrentTime: false,
+  clickThrough: true,
+  opacity: 0.85,
+};
+
+type HudSettings = typeof defaultHudSettings;
+
+const getHudSettings = () => {
+  try {
+    const raw = localStorage.getItem('hudSettings');
+    if (raw) return { ...defaultHudSettings, ...JSON.parse(raw) };
+  } catch {}
+  return { ...defaultHudSettings };
+};
+
+const saveHudSettings = (settings: any) => {
+  localStorage.setItem('hudSettings', JSON.stringify(settings));
+  // Send to HUD window
+  if ((window as any).require) {
+    const { ipcRenderer } = (window as any).require('electron');
+    ipcRenderer.send('hud-settings-update', settings);
+  }
+};
+
+const App: React.FC = () => {
+  const [selected, setSelected] = useState('tasks');
+  const fetchTasksRef = useRef<() => void>(() => {});
+  const handleTaskAdded = useCallback(() => {
+    if (fetchTasksRef.current) fetchTasksRef.current();
+  }, []);
+
+  // HUD options state
+  const [hudSettings, setHudSettings] = useState<HudSettings>(getHudSettings());
+
+  // Apply instantly on change
+  useEffect(() => {
+    saveHudSettings(hudSettings);
+  }, [hudSettings]);
+
+  // Set body and #root background to match app background
+  useEffect(() => {
+    const bg = hudSettings.darkMode ? '#23272f' : '#f6f7fb';
+    document.body.style.background = bg;
+    const root = document.getElementById('root');
+    if (root) (root as HTMLElement).style.background = bg;
+  }, [hudSettings.darkMode]);
+
+  const handleReset = () => {
+    setHudSettings({ ...defaultHudSettings });
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      width: '100vw',
+      background: hudSettings.darkMode ? '#23272f' : '#f6f7fb',
+      fontFamily: 'Inter, Arial, sans-serif',
+      color: hudSettings.darkMode ? '#f3f3f3' : '#222',
+      transition: 'background 0.2s, color 0.2s',
+      margin: 0,
+      padding: 0,
+      boxSizing: 'border-box',
+    }}>
+      {/* Sidebar */}
+      <nav style={{
+        width: 160,
+        height: '100vh', // Ensure sidebar fills height
+        background: hudSettings.darkMode ? '#181b20' : '#fff',
+        borderRight: hudSettings.darkMode ? '1px solid #2c2f36' : '1px solid #eee',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        padding: 0, // Remove vertical padding
+        boxShadow: hudSettings.darkMode ? '2px 0 8px rgba(0,0,0,0.12)' : '2px 0 8px rgba(0,0,0,0.03)',
+        transition: 'background 0.2s, border 0.2s',
+      }}>
+        <div style={{ padding: '24px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {sections.map(s => (
+            <button
+              key={s.key}
+              onClick={() => setSelected(s.key)}
+              style={{
+                background: selected === s.key ? (hudSettings.darkMode ? '#23272f' : '#e3e8f0') : 'none',
+                border: 'none',
+                borderLeft: selected === s.key ? '4px solid #4fa3e3' : '4px solid transparent',
+                color: hudSettings.darkMode ? (selected === s.key ? '#fff' : '#b3b3b3') : '#222',
+                fontWeight: selected === s.key ? 700 : 400,
+                fontSize: 16,
+                padding: '12px 20px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'background 0.2s, border 0.2s, color 0.2s',
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+      {/* Main content area */}
+      <main style={{
+        flex: 1,
+        padding: '32px 40px',
+        background: hudSettings.darkMode ? '#23272f' : '#f6f7fb',
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0,
+        color: hudSettings.darkMode ? '#f3f3f3' : '#222',
+        transition: 'background 0.2s, color 0.2s',
+        minHeight: '100vh',
+        boxSizing: 'border-box',
+      }}>
+        {selected === 'tasks' && (
+          <>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Manage Tasks</h2>
+            <TaskForm onTaskAdded={handleTaskAdded} />
+            <TaskList fetchTasksRef={fetchTasksRef} />
+          </>
+        )}
+        {selected === 'hud' && (
+          <>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>HUD Options</h2>
+            <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 400 }}>
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                <input type="checkbox" checked={hudSettings.darkMode} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, darkMode: e.target.checked }))} />
+                Dark mode
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                <input type="checkbox" checked={hudSettings.showCurrentTime} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, showCurrentTime: e.target.checked }))} />
+                Show current time
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                <input type="checkbox" checked={hudSettings.clickThrough} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, clickThrough: e.target.checked }))} />
+                Enable click-through
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                Opacity
+                <input
+                  type="range"
+                  min={0.5}
+                  max={1}
+                  step={0.01}
+                  value={hudSettings.opacity}
+                  onChange={e => setHudSettings((s: HudSettings) => ({ ...s, opacity: Number(e.target.value) }))}
+                  style={{ flex: 1, marginLeft: 12 }}
+                />
+                <span style={{ width: 40, textAlign: 'right', color: hudSettings.darkMode ? '#b3b3b3' : '#888', fontSize: 15 }}>{Math.round(hudSettings.opacity * 100)}%</span>
+              </label>
+              <button
+                onClick={handleReset}
+                style={{
+                  marginTop: 12,
+                  background: hudSettings.darkMode ? '#23272f' : '#f3f3f3',
+                  border: hudSettings.darkMode ? '1px solid #444' : '1px solid #ddd',
+                  borderRadius: 6,
+                  padding: '8px 18px',
+                  fontSize: 15,
+                  color: hudSettings.darkMode ? '#f3f3f3' : '#444',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  transition: 'background 0.2s, border 0.2s',
+                }}
+              >
+                Reset to Defaults
+              </button>
+            </div>
+            {/* Live preview */}
+            <div
+              style={{
+                marginTop: 40,
+                background: hudSettings.darkMode ? 'rgba(30,34,40,0.95)' : `rgba(0,0,0,${hudSettings.opacity})`,
+                borderRadius: 10,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                padding: 24,
+                color: hudSettings.darkMode ? '#f3f3f3' : '#fff',
+                minHeight: 80,
+                maxWidth: 340,
+                fontSize: 18,
+                fontWeight: 500,
+                letterSpacing: 0.2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                border: hudSettings.darkMode ? '1.5px solid #222' : '1.5px solid #2222',
+                transition: 'background 0.2s, color 0.2s',
+              }}
+            >
+              <span style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, color: hudSettings.darkMode ? '#b3d1f7' : '#cce6ff' }}>HUD Preview</span>
+              <span style={{ fontSize: 16, color: hudSettings.darkMode ? '#b3d1f7' : '#cce6ff' }}>Current Task: <b style={{ color: hudSettings.darkMode ? '#fff' : '#fff' }}>Example Task</b></span>
+              {hudSettings.showCurrentTime && (
+                <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>12:34:56 PM</span>
+              )}
+              <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>(00:12:34 left)</span>
+            </div>
+          </>
+        )}
+        {selected === 'about' && (
+          <>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>About</h2>
+            <div style={{ color: hudSettings.darkMode ? '#b3b3b3' : '#666', fontSize: 16, marginTop: 24 }}>
+              <p>Time Keeper v1.0</p>
+              <p>Modern minimalist time/task HUD for desktop.</p>
+              <p style={{ fontSize: 14, color: hudSettings.darkMode ? '#888' : '#aaa', marginTop: 16 }}>© {new Date().getFullYear()} Time Keeper</p>
+            </div>
+          </>
+        )}
+      </main>
+    </div>
+  );
+};
+
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
-  root.render(
-    <>
-      <h2>Manage Tasks & Options</h2>
-      <TaskForm />
-      <TaskList />
-      {/* Future: Add options/settings UI here */}
-    </>
-  );
+  root.render(<App />);
 } 

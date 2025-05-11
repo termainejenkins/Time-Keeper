@@ -1,16 +1,54 @@
 # Time Keeper
 
-A minimalist desktop HUD application that syncs with Google Calendar and displays countdown timers for your tasks.
-
-**Author:** Termaine Jenkins (aka TJ)
+A modern, cross-platform desktop HUD app for time and task management.
 
 ## Features
+- Minimalist always-on-top HUD (transparent, click-through)
+- Local task management (add, repeat, list)
+- Google Calendar integration (scaffolded, not yet complete)
+- System tray with context menu
+- Management window with sidebar (Tasks, HUD Options, About)
+- Unified menu logic (tray + HUD hamburger)
+- HUD options: dark mode, show time, click-through, opacity, reset
 
-- Transparent, always-on-top HUD display
-- Google Calendar integration
-- Task countdown timers
-- Cross-platform support (Windows, macOS, Linux)
-- Minimalist and non-intrusive design
+## Project Structure
+```
+Time Keeper/
+  dist/           # Build output
+  release/        # Electron packaged output
+  src/
+    main/         # Electron main process (calendar, tasks, tray, IPC)
+    renderer/     # React UI (assets, components)
+    shared/       # Shared types, menu definitions
+  .env, package.json, tsconfig.json, vite.config.ts, ...
+```
+
+## Key Architectural Decisions
+- Separation of concerns: `main` (Electron), `renderer` (React), `shared` (types, menu)
+- IPC for task management and HUD settings sync
+- Persistence: `electron-store` for tasks, `localStorage` for HUD settings
+- Inline styles for rapid prototyping; dark mode and light mode supported
+- Unified menu logic for tray and HUD
+
+## Outstanding/Deferred Issues
+- Hamburger menu clickability may have platform-specific quirks
+- HUD options not yet persisted across app restarts in a cross-window way (currently localStorage + IPC)
+- Google Calendar integration is scaffolded but not implemented
+- Further enhancements possible: deeper settings persistence, improved click-through UX, more HUD options
+
+## How to Resume Work with the AI
+To continue development with the AI assistant, use the `TimeKeeper_AI_Prompt.md` file in the project root. This file contains a summary of the current state, architecture, and outstanding issues. Paste its contents into your next session to pick up where you left off.
+
+## Getting Started
+1. Install dependencies: `npm install`
+2. Start the app in development: `npm run dev`
+3. Build for production: `npm run build`
+
+---
+
+For more details, see the code and comments in each module.
+
+**Author:** Termaine Jenkins (aka TJ)
 
 ## Development Setup
 

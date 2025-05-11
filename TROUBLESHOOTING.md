@@ -30,4 +30,29 @@ This ensures Electron can always find your JS bundle and assets.
 
 ---
 
+## Hamburger Menu Clickability Issues
+- **Problem:** On some platforms, the HUD's hamburger menu may not be clickable, or only partially clickable, when the window is transparent and set to click-through mode.
+- **Cause:** Electron's `setIgnoreMouseEvents(true, { forward: true })` and transparent windows can behave differently across Windows, macOS, and Linux. Hit-testing for UI elements over transparent backgrounds is not always reliable.
+- **Workarounds:**
+  - Try toggling click-through mode off in the HUD options.
+  - Ensure the hamburger menu button is rendered outside any pointer-events: none containers.
+  - If the issue persists, consider using a non-transparent background or adjusting the HUD window's z-order.
+- **Note:** This is a known Electron limitation. Future Electron updates or custom hit-testing logic may improve this.
+
+## HUD Options Not Persisting Across App Restarts (All Windows)
+- **Problem:** HUD options (dark mode, opacity, etc.) are saved in localStorage and sent via IPC, but may not persist or sync across all windows after a full app restart.
+- **Cause:** localStorage is per-window and not shared. IPC syncs settings at runtime, but on restart, only the window that set the options will have the correct state.
+- **Workarounds:**
+  - Manually re-apply settings in each window after restart.
+  - For robust persistence, migrate settings to a shared store (e.g., `electron-store`) and load them in all windows at startup.
+- **Note:** This is a planned enhancement for future versions.
+
+## Google Calendar Integration Not Yet Implemented
+- **Problem:** Google Calendar integration is scaffolded but not functional.
+- **Cause:** The codebase includes placeholders for Google Calendar logic, but authentication, event fetching, and sync are not yet implemented.
+- **Workarounds:**
+  - Use local task management for now.
+  - Monitor the project README and changelog for updates on Google Calendar support.
+- **Note:** Full Google Calendar integration is a future milestone.
+
 _Add new issues and solutions here as they are discovered!_ 

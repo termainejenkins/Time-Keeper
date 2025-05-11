@@ -1,8 +1,9 @@
 console.log("Main process started")
 
-import { app, BrowserWindow, screen, ipcMain, Menu, Tray, nativeImage } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, Menu, Tray, nativeImage, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 import { getLocalTasks, addLocalTask, updateLocalTask, deleteLocalTask } from './main/tasks/local';
+import { sharedMenu } from './shared/menu';
 
 class MainProcess {
   private mainWindow: BrowserWindow | null = null;
@@ -27,6 +28,18 @@ class MainProcess {
       ipcMain.handle('ping', () => {
         console.log('Received ping from renderer');
         return 'pong';
+      });
+      // IPC for HUD hamburger menu
+      ipcMain.handle('open-management-window', () => {
+        this.openManagementWindow();
+      });
+      ipcMain.handle('quit-app', () => {
+        app.quit();
+      });
+      ipcMain.handle('set-hud-click-through', (_event, enabled) => {
+        if (this.mainWindow) {
+          this.mainWindow.setIgnoreMouseEvents(!!enabled);
+        }
       });
       // TODO: Add system tray integration here
     });
@@ -64,8 +77,8 @@ class MainProcess {
     // Load the index.html file from dist/renderer
     this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
 
-    // Make the window click-through
-    this.mainWindow.setIgnoreMouseEvents(true);
+    // Make the window click-through, but allow pointer events to pass through to elements with pointerEvents: 'auto'
+    this.mainWindow.setIgnoreMouseEvents(true, { forward: true });
     // TODO: Add click-through toggle logic here
 
     // Always open DevTools for debugging
@@ -73,21 +86,9 @@ class MainProcess {
 
     // Add context menu for HUD (fix: use webContents event)
     this.mainWindow.webContents.on('context-menu', (_event, params) => {
-      // Temporarily disable click-through to allow menu interaction
       this.mainWindow!.setIgnoreMouseEvents(false);
-      const menu = Menu.buildFromTemplate([
-        {
-          label: 'Manage Tasks / Options',
-          click: () => this.openManagementWindow(),
-        },
-        { type: 'separator' },
-        {
-          label: 'Quit',
-          click: () => app.quit(),
-        },
-      ]);
+      const menu = Menu.buildFromTemplate(this.buildMenuTemplate());
       menu.popup({ window: this.mainWindow! });
-      // Re-enable click-through after menu closes
       menu.once('menu-will-close', () => {
         this.mainWindow!.setIgnoreMouseEvents(true);
       });
@@ -142,28 +143,38 @@ class MainProcess {
     } else {
       this.tray = new Tray(nativeImage.createEmpty());
     }
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'Show HUD',
-        click: () => {
-          if (this.mainWindow) {
-            this.mainWindow.show();
-            this.mainWindow.focus();
-          }
-        },
-      },
-      {
-        label: 'Manage Tasks / Options',
-        click: () => this.openManagementWindow(),
-      },
-      { type: 'separator' },
-      {
-        label: 'Quit',
-        click: () => app.quit(),
-      },
-    ]);
+    const contextMenu = Menu.buildFromTemplate(this.buildMenuTemplate());
     this.tray.setToolTip('Time Keeper');
     this.tray.setContextMenu(contextMenu);
+  }
+
+  private buildMenuTemplate(): MenuItemConstructorOptions[] {
+    return sharedMenu.map(item => {
+      if ('separator' in item && item.separator) return { type: 'separator' };
+      if (item.action === 'show-hud') {
+        return {
+          label: item.label,
+          click: () => {
+            if (this.mainWindow) {
+              this.mainWindow.show();
+              this.mainWindow.focus();
+            }
+          },
+        };
+      } else if (item.action === 'manage') {
+        return {
+          label: item.label,
+          click: () => this.openManagementWindow(),
+        };
+      } else if (item.action === 'quit') {
+        return {
+          label: item.label,
+          click: () => app.quit(),
+        };
+      }
+      // If action is unknown, skip this item
+      return null;
+    }).filter(Boolean) as MenuItemConstructorOptions[];
   }
 }
 

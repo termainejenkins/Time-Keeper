@@ -9,8 +9,13 @@ export default defineConfig({
     outDir: resolve(__dirname, 'dist/renderer'),
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, 'src/renderer/index.html'),
+      input: {
+        main: resolve(__dirname, 'src/renderer/index.html'),
+        manage: resolve(__dirname, 'src/renderer/manage.html'),
+      },
     },
   },
-  plugins: [react()],
+  plugins: [
+    react()
+  ],
 }); 

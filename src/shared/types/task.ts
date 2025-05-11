@@ -5,4 +5,5 @@ export interface LocalTask {
   start: string; // ISO date string
   end: string;   // ISO date string
   completed: boolean;
+  repeat?: 'none' | 'daily' | 'weekly';
 } 

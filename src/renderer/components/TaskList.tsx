@@ -4,7 +4,11 @@ import { LocalTask } from '../../shared/types/task';
 
 const { ipcRenderer } = window.require('electron');
 
-const TaskList: React.FC = () => {
+type TaskListProps = {
+  fetchTasksRef?: React.MutableRefObject<() => void>;
+};
+
+const TaskList: React.FC<TaskListProps> = ({ fetchTasksRef }) => {
   const [tasks, setTasks] = useState<LocalTask[]>([]);
 
   const fetchTasks = useCallback(() => {
@@ -19,11 +23,14 @@ const TaskList: React.FC = () => {
       console.log('Ping result:', result);
     });
     fetchTasks();
-  }, [fetchTasks]);
+    if (fetchTasksRef) {
+      fetchTasksRef.current = fetchTasks;
+    }
+  }, [fetchTasks, fetchTasksRef]);
 
   return (
     <div className="task-list">
-      <h3>Local Tasks</h3>
+      {/* <h3>Local Tasks</h3> */}
       {/* <TaskForm onTaskAdded={fetchTasks} /> */}
       {tasks.length === 0 ? (
         <div>No tasks found.</div>
@@ -33,6 +40,11 @@ const TaskList: React.FC = () => {
             <li key={task.id}>
               <strong>{task.title}</strong> ({task.start} - {task.end})
               {task.completed && ' ✅'}
+              {task.repeat && task.repeat !== 'none' && (
+                <span style={{ marginLeft: 8, color: '#888', fontSize: '0.9em' }}>
+                  [Repeats: {task.repeat.charAt(0).toUpperCase() + task.repeat.slice(1)}]
+                </span>
+              )}
             </li>
           ))}
         </ul>

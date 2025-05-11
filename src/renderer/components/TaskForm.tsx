@@ -8,6 +8,7 @@ const TaskForm: React.FC<{ onTaskAdded?: (task: LocalTask) => void }> = ({ onTas
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [description, setDescription] = useState('');
+  const [repeat, setRepeat] = useState<'none' | 'daily' | 'weekly'>('none');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,11 +18,13 @@ const TaskForm: React.FC<{ onTaskAdded?: (task: LocalTask) => void }> = ({ onTas
       start,
       end,
       description,
+      repeat,
     });
     setTitle('');
     setStart('');
     setEnd('');
     setDescription('');
+    setRepeat('none');
     if (onTaskAdded) onTaskAdded(newTask);
   };
 
@@ -54,6 +57,11 @@ const TaskForm: React.FC<{ onTaskAdded?: (task: LocalTask) => void }> = ({ onTas
         value={description}
         onChange={e => setDescription(e.target.value)}
       />
+      <select value={repeat} onChange={e => setRepeat(e.target.value as any)} style={{ marginBottom: 8 }}>
+        <option value="none">Does not repeat</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+      </select>
       <button type="submit">Add Task</button>
     </form>
   );
