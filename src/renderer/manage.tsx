@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
 
+console.log('Manage.tsx loaded!');
+
 const sections = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'hud', label: 'HUD Options' },
@@ -14,6 +16,8 @@ const defaultHudSettings = {
   showCurrentTime: false,
   clickThrough: true,
   opacity: 0.85,
+  placement: 'top-right',
+  alwaysOnTop: false,
 };
 
 type HudSettings = typeof defaultHudSettings;
@@ -31,6 +35,7 @@ const saveHudSettings = (settings: any) => {
   // Send to HUD window
   if ((window as any).require) {
     const { ipcRenderer } = (window as any).require('electron');
+    console.log('[Renderer] Sending hud-settings-update:', settings);
     ipcRenderer.send('hud-settings-update', settings);
   }
 };
@@ -57,6 +62,17 @@ const App: React.FC = () => {
     const root = document.getElementById('root');
     if (root) (root as HTMLElement).style.background = bg;
   }, [hudSettings.darkMode]);
+
+  useEffect(() => {
+    if (selected === 'hud') {
+      console.log('Rendering HUD Options section');
+      if ((window as any).require) {
+        const { ipcRenderer } = (window as any).require('electron');
+        ipcRenderer.send('test-event', { foo: 123 });
+        console.log('[Renderer] Sent test-event');
+      }
+    }
+  }, [selected]);
 
   const handleReset = () => {
     setHudSettings({ ...defaultHudSettings });
@@ -127,7 +143,7 @@ const App: React.FC = () => {
       }}>
         {selected === 'tasks' && (
           <>
-            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Manage Tasks</h2>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Tasks</h2>
             <TaskForm onTaskAdded={handleTaskAdded} />
             <TaskList fetchTasksRef={fetchTasksRef} />
           </>
@@ -147,6 +163,27 @@ const App: React.FC = () => {
               <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
                 <input type="checkbox" checked={hudSettings.clickThrough} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, clickThrough: e.target.checked }))} />
                 Enable click-through
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                <input type="checkbox" checked={hudSettings.alwaysOnTop} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, alwaysOnTop: e.target.checked }))} />
+                Always on Top
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                Placement
+                <select
+                  value={hudSettings.placement}
+                  onChange={e => {
+                    console.log('[Renderer] Placement changed to:', e.target.value);
+                    setHudSettings((s: HudSettings) => ({ ...s, placement: e.target.value }));
+                  }}
+                  style={{ marginLeft: 12 }}
+                >
+                  <option value="top-left">Top Left</option>
+                  <option value="top-right">Top Right</option>
+                  <option value="bottom-left">Bottom Left</option>
+                  <option value="bottom-right">Bottom Right</option>
+                  <option value="center">Center</option>
+                </select>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
                 Opacity

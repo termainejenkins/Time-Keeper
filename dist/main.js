@@ -32,16 +32,22 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 console.log("Main process started");
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const local_1 = require("./main/tasks/local");
+const menu_1 = require("./shared/menu");
+const electron_store_1 = __importDefault(require("electron-store"));
 class MainProcess {
     constructor() {
         this.mainWindow = null;
         this.managementWindow = null;
         this.tray = null;
+        this.settingsStore = new electron_store_1.default();
         this.init();
     }
     init() {
@@ -59,6 +65,31 @@ class MainProcess {
                 console.log('Received ping from renderer');
                 return 'pong';
             });
+            // IPC for HUD hamburger menu
+            electron_1.ipcMain.handle('open-management-window', (_event, settings) => {
+                const alwaysOnTop = settings && typeof settings.alwaysOnTop === 'boolean' ? settings.alwaysOnTop : false;
+                this.openManagementWindow(alwaysOnTop);
+            });
+            electron_1.ipcMain.handle('quit-app', () => {
+                electron_1.app.quit();
+            });
+            electron_1.ipcMain.handle('set-hud-click-through', (_event, enabled) => {
+                if (this.mainWindow) {
+                    this.mainWindow.setIgnoreMouseEvents(!!enabled);
+                }
+            });
+            // Listen for HUD settings updates (placement, etc)
+            electron_1.ipcMain.on('hud-settings-update', (_event, settings) => {
+                console.log('[IPC] hud-settings-update received:', settings);
+                this.updateHudPlacement(settings?.placement);
+                if (this.mainWindow && typeof settings?.alwaysOnTop === 'boolean') {
+                    this.mainWindow.setAlwaysOnTop(!!settings.alwaysOnTop);
+                    this.settingsStore.set('hudSettings', settings);
+                }
+            });
+            electron_1.ipcMain.on('test-event', (_event, data) => {
+                console.log('[IPC] test-event received:', data);
+            });
             // TODO: Add system tray integration here
         });
         electron_1.app.on('window-all-closed', () => {
@@ -72,8 +103,53 @@ class MainProcess {
             }
         });
     }
+    getAppIconPathAndLog() {
+        console.log('[DEBUG] getAppIconPathAndLog called');
+        const fs = require('fs');
+        // Write to a debug file to confirm execution
+        try {
+            fs.appendFileSync('app_icon_debug.log', `[${new Date().toISOString()}] getAppIconPathAndLog called\n`);
+        }
+        catch (e) {
+            // ignore
+        }
+        const iconPath = path.join(__dirname, 'renderer/assets/icon.png');
+        let appIconPath = undefined;
+        let iconSource = '';
+        if (fs.existsSync(iconPath)) {
+            appIconPath = iconPath;
+            iconSource = `custom icon at ${iconPath}`;
+        }
+        else {
+            // Fallback to Electron's default app icon (icon.ico or icon.png in app root)
+            const appIconIco = path.join(electron_1.app.getAppPath(), 'icon.ico');
+            const appIconPng = path.join(electron_1.app.getAppPath(), 'icon.png');
+            if (fs.existsSync(appIconIco)) {
+                appIconPath = appIconIco;
+                iconSource = `fallback icon.ico at ${appIconIco}`;
+            }
+            else if (fs.existsSync(appIconPng)) {
+                appIconPath = appIconPng;
+                iconSource = `fallback icon.png at ${appIconPng}`;
+            }
+            else {
+                iconSource = 'no icon found, using Electron blank icon';
+            }
+        }
+        if (appIconPath) {
+            console.log('App icon: using', iconSource);
+        }
+        else {
+            console.warn('App icon: no icon found, using Electron blank icon');
+        }
+        return appIconPath;
+    }
     createWindow() {
+        console.log('[DEBUG] createWindow called');
         const { width, height } = electron_1.screen.getPrimaryDisplay().workAreaSize;
+        const savedPlacement = this.settingsStore.get('hudPlacement', 'top-right');
+        const hudSettings = this.settingsStore.get('hudSettings', { alwaysOnTop: true });
+        const appIconPath = this.getAppIconPathAndLog();
         this.mainWindow = new electron_1.BrowserWindow({
             width: 320,
             height: 100,
@@ -81,56 +157,70 @@ class MainProcess {
             y: 20,
             frame: false,
             transparent: true,
-            alwaysOnTop: true,
+            alwaysOnTop: !!hudSettings.alwaysOnTop,
+            icon: appIconPath,
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
             }
         });
-        // Load the index.html file from dist/renderer
+        // Set dock icon for macOS
+        if (process.platform === 'darwin' && appIconPath) {
+            electron_1.app.dock.setIcon(appIconPath);
+        }
         this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
-        // Make the window click-through
-        this.mainWindow.setIgnoreMouseEvents(true);
-        // TODO: Add click-through toggle logic here
-        // Always open DevTools for debugging
+        this.mainWindow.setIgnoreMouseEvents(true, { forward: true });
         this.mainWindow.webContents.openDevTools({ mode: 'detach' });
-        // Add context menu for HUD (fix: use webContents event)
         this.mainWindow.webContents.on('context-menu', (_event, params) => {
-            // Temporarily disable click-through to allow menu interaction
             this.mainWindow.setIgnoreMouseEvents(false);
-            const menu = electron_1.Menu.buildFromTemplate([
-                {
-                    label: 'Manage Tasks / Options',
-                    click: () => this.openManagementWindow(),
-                },
-                { type: 'separator' },
-                {
-                    label: 'Quit',
-                    click: () => electron_1.app.quit(),
-                },
-            ]);
+            const menu = electron_1.Menu.buildFromTemplate(this.buildMenuTemplate());
             menu.popup({ window: this.mainWindow });
-            // Re-enable click-through after menu closes
             menu.once('menu-will-close', () => {
                 this.mainWindow.setIgnoreMouseEvents(true);
             });
         });
+        this.mainWindow.once('ready-to-show', () => {
+            this.updateHudPlacement(savedPlacement);
+        });
     }
-    openManagementWindow() {
+    openManagementWindow(alwaysOnTop = false) {
+        console.log('[DEBUG] openManagementWindow called');
         if (this.managementWindow) {
             this.managementWindow.focus();
             return;
         }
+        console.log('Opening Options window');
+        const { workArea } = electron_1.screen.getPrimaryDisplay();
+        const winWidth = Math.round(workArea.width * 0.98);
+        const winHeight = Math.round(workArea.height * 0.98);
+        const x = workArea.x + Math.round((workArea.width - winWidth) / 2);
+        const y = workArea.y + Math.round((workArea.height - winHeight) / 2);
+        const appIconPath = this.getAppIconPathAndLog();
         this.managementWindow = new electron_1.BrowserWindow({
-            width: 500,
-            height: 600,
-            title: 'Time Keeper - Manage Tasks & Options',
+            width: winWidth,
+            height: winHeight,
+            x,
+            y,
+            title: 'Time Keeper - Options',
+            alwaysOnTop,
+            fullscreen: false,
+            icon: appIconPath,
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
             }
         });
+        // Set dock icon for macOS
+        if (process.platform === 'darwin' && appIconPath) {
+            electron_1.app.dock.setIcon(appIconPath);
+        }
         this.managementWindow.loadFile(path.join(__dirname, 'renderer/manage.html'));
+        this.managementWindow.once('ready-to-show', () => {
+            if (this.managementWindow) {
+                this.managementWindow.setMenuBarVisibility(true);
+                this.managementWindow.show();
+            }
+        });
         this.managementWindow.on('closed', () => {
             this.managementWindow = null;
         });
@@ -143,51 +233,106 @@ class MainProcess {
         }
         const fs = require('fs');
         const iconPath = path.join(__dirname, 'renderer/assets/icon.png');
-        let trayIconPath = iconPath;
-        if (!fs.existsSync(iconPath)) {
+        let trayIconPath = undefined;
+        let iconSource = '';
+        if (fs.existsSync(iconPath)) {
+            trayIconPath = iconPath;
+            iconSource = `custom icon at ${iconPath}`;
+        }
+        else {
             // Fallback to Electron's default app icon (icon.ico or icon.png in app root)
             const appIconIco = path.join(electron_1.app.getAppPath(), 'icon.ico');
             const appIconPng = path.join(electron_1.app.getAppPath(), 'icon.png');
             if (fs.existsSync(appIconIco)) {
                 trayIconPath = appIconIco;
+                iconSource = `fallback icon.ico at ${appIconIco}`;
             }
             else if (fs.existsSync(appIconPng)) {
                 trayIconPath = appIconPng;
+                iconSource = `fallback icon.png at ${appIconPng}`;
             }
             else {
-                console.warn('No tray icon found at', iconPath, 'or default app icon. Tray will use a blank icon.');
-                trayIconPath = undefined;
+                iconSource = 'no icon found, using Electron blank icon';
             }
         }
-        console.log('Tray icon resolved path:', trayIconPath, '| Exists:', trayIconPath ? fs.existsSync(trayIconPath) : 'N/A');
         if (trayIconPath) {
             this.tray = new electron_1.Tray(trayIconPath);
+            console.log('Tray icon: using', iconSource);
         }
         else {
             this.tray = new electron_1.Tray(electron_1.nativeImage.createEmpty());
+            console.warn('Tray icon: no icon found, using Electron blank icon');
         }
-        const contextMenu = electron_1.Menu.buildFromTemplate([
-            {
-                label: 'Show HUD',
-                click: () => {
-                    if (this.mainWindow) {
-                        this.mainWindow.show();
-                        this.mainWindow.focus();
-                    }
-                },
-            },
-            {
-                label: 'Manage Tasks / Options',
-                click: () => this.openManagementWindow(),
-            },
-            { type: 'separator' },
-            {
-                label: 'Quit',
-                click: () => electron_1.app.quit(),
-            },
-        ]);
+        const contextMenu = electron_1.Menu.buildFromTemplate(this.buildMenuTemplate());
         this.tray.setToolTip('Time Keeper');
         this.tray.setContextMenu(contextMenu);
+    }
+    buildMenuTemplate() {
+        return menu_1.sharedMenu.map(item => {
+            if ('separator' in item && item.separator)
+                return { type: 'separator' };
+            if (item.action === 'show-hud') {
+                return {
+                    label: item.label,
+                    click: () => {
+                        if (this.mainWindow) {
+                            this.mainWindow.show();
+                            this.mainWindow.focus();
+                        }
+                    },
+                };
+            }
+            else if (item.action === 'manage') {
+                return {
+                    label: item.label,
+                    click: () => this.openManagementWindow(),
+                };
+            }
+            else if (item.action === 'quit') {
+                return {
+                    label: item.label,
+                    click: () => electron_1.app.quit(),
+                };
+            }
+            // If action is unknown, skip this item
+            return null;
+        }).filter(Boolean);
+    }
+    updateHudPlacement(placement) {
+        if (!this.mainWindow)
+            return;
+        console.log('[HUD] updateHudPlacement called with:', placement);
+        this.settingsStore.set('hudPlacement', placement); // persist
+        const { width: screenW, height: screenH } = electron_1.screen.getPrimaryDisplay().workAreaSize;
+        const [hudW, hudH] = [this.mainWindow.getBounds().width, this.mainWindow.getBounds().height];
+        let x = 0, y = 0;
+        switch (placement) {
+            case 'top-left':
+                x = 20;
+                y = 20;
+                break;
+            case 'top-right':
+                x = screenW - hudW - 20;
+                y = 20;
+                break;
+            case 'bottom-left':
+                x = 20;
+                y = screenH - hudH - 20;
+                break;
+            case 'bottom-right':
+                x = screenW - hudW - 20;
+                y = screenH - hudH - 20;
+                break;
+            case 'center':
+                x = Math.round((screenW - hudW) / 2);
+                y = Math.round((screenH - hudH) / 2);
+                break;
+            default:
+                x = screenW - hudW - 20;
+                y = 20;
+        }
+        console.log(`[HUD] setPosition: (${x}, ${y}) for placement: ${placement}, window size: (${hudW}, ${hudH}), screen: (${screenW}, ${screenH})`);
+        this.mainWindow.setPosition(x, y);
     }
 }
 new MainProcess();

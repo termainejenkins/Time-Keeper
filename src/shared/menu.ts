@@ -4,7 +4,7 @@ export type SharedMenuItem =
 
 export const sharedMenu: SharedMenuItem[] = [
   { label: 'Show HUD', action: 'show-hud' },
-  { label: 'Manage Tasks / Options', action: 'manage' },
+  { label: 'Options', action: 'manage' },
   { separator: true },
   { label: 'Quit', action: 'quit' },
 ]; 

@@ -25,9 +25,10 @@
     }
   },
   "scripts": {
-    "start": "electron .",
+    "build:main": "tsc",
+    "start": "npm run build:main && electron .",
     "build:renderer": "vite build --config vite.config.ts",
-    "dev": "npm run build:renderer && electron .",
+    "dev": "npm run build:renderer && npm run build:main && electron .",
     "build": "npm run build:renderer",
     "package": "npm run build && electron-builder",
     "preview:renderer": "vite preview --config vite.config.ts",
@@ -58,8 +59,10 @@
     "vite-plugin-static-copy": "^3.0.0"
   },
   "dependencies": {
+    "electron-oauth2": "^3.0.0",
     "electron-store": "^8.1.0",
     "framer-motion": "^11.18.2",
+    "googleapis": "^148.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss": "^3.4.17",

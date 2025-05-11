@@ -221,7 +221,7 @@ const HUD: React.FC = () => {
     setMenuOpen(false);
     if (!ipcRenderer) return;
     if (action === 'manage') {
-      ipcRenderer.invoke('open-management-window');
+      ipcRenderer.invoke('open-management-window', { alwaysOnTop: false });
     } else if (action === 'quit') {
       ipcRenderer.invoke('quit-app');
     }
@@ -324,7 +324,7 @@ const HUD: React.FC = () => {
               }}
               onClick={() => handleMenuClick('manage')}
             >
-              Manage Tasks / Options
+              Options
             </button>
             <div style={{ borderTop: '1px solid #eee' }} />
             <button
@@ -359,7 +359,7 @@ const HUD: React.FC = () => {
             <>
               Now: <span style={{ textDecoration: 'underline' }}>{currentTask.title}</span>
               {currentTask.repeat && currentTask.repeat !== 'none' && (
-                <span style={{ marginLeft: 8, color: '#888', fontSize: '0.8em' }}>
+                <span style={{ marginLeft: 8, color: '#888', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
                   [Repeats: {currentTask.repeat.charAt(0).toUpperCase() + currentTask.repeat.slice(1)}]
                 </span>
               )}
@@ -381,7 +381,7 @@ const HUD: React.FC = () => {
           <div className="next-event" style={{ fontSize: '0.95em', color: '#888', textAlign: 'center', opacity: 0.7, marginTop: 2 }}>
             Next: <span>{nextTask.title}</span>
             {nextTask.repeat && nextTask.repeat !== 'none' && (
-              <span style={{ marginLeft: 8, color: '#bbb', fontSize: '0.8em' }}>
+              <span style={{ marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
                 [Repeats: {nextTask.repeat.charAt(0).toUpperCase() + nextTask.repeat.slice(1)}]
               </span>
             )}
