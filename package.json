@@ -3,11 +3,33 @@
   "version": "1.0.0",
   "description": "A minimalist desktop HUD for tracking time and tasks",
   "main": "dist/main.js",
+  "build": {
+    "appId": "com.timekeeper.app",
+    "productName": "Time Keeper",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
   "scripts": {
     "start": "electron .",
     "build:renderer": "vite build --config vite.config.ts",
     "dev": "npm run build:renderer && electron .",
     "build": "npm run build:renderer",
+    "package": "npm run build && electron-builder",
     "preview:renderer": "vite preview --config vite.config.ts",
     "test": "jest",
     "lint": "eslint . --ext .ts",
@@ -17,15 +39,17 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.12",
-    "@types/node": "^22.15.17",
-    "@types/react": "^19.1.3",
-    "@types/react-dom": "^19.1.3",
-    "@typescript-eslint/eslint-plugin": "^8.32.0",
-    "@typescript-eslint/parser": "^8.32.0",
+    "@types/node": "^20.17.46",
+    "@types/react": "^18.3.21",
+    "@types/react-dom": "^18.3.7",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "@vitejs/plugin-react": "^4.2.0",
     "copyfiles": "^2.4.1",
-    "electron": "^36.2.0",
-    "eslint": "^9.26.0",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.6.0",
+    "eslint": "^8.57.1",
     "jest": "^29.7.0",
     "prettier": "^3.2.5",
     "ts-jest": "^29.1.2",
@@ -33,10 +57,13 @@
     "vite": "^5.2.0"
   },
   "dependencies": {
-    "electron-store": "^10.0.1",
-    "framer-motion": "^12.10.5",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "tailwindcss": "^4.1.6"
+    "electron-oauth2": "^3.0.0",
+    "electron-store": "^8.1.0",
+    "framer-motion": "^11.18.2",
+    "googleapis": "^148.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.17",
+    "uuid": "^11.1.0"
   }
 }
