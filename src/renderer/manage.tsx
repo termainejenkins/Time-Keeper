@@ -8,6 +8,7 @@ console.log('Manage.tsx loaded!');
 const sections = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'hud', label: 'HUD Options' },
+  { key: 'updates', label: 'Updates' },
   { key: 'about', label: 'About' },
 ];
 
@@ -16,8 +17,8 @@ const defaultHudSettings = {
   showCurrentTime: false,
   clickThrough: true,
   opacity: 0.85,
-  placement: 'top-right',
-  alwaysOnTop: false,
+  placement: 'top-center',
+  alwaysOnTop: true,
 };
 
 type HudSettings = typeof defaultHudSettings;
@@ -50,6 +51,16 @@ const App: React.FC = () => {
   // HUD options state
   const [hudSettings, setHudSettings] = useState<HudSettings>(getHudSettings());
 
+  // Updates state
+  const [appVersion, setAppVersion] = useState('');
+  const [updateStatus, setUpdateStatus] = useState('idle');
+  const [updateInfo, setUpdateInfo] = useState<any>(null);
+  const [autoUpdate, setAutoUpdate] = useState(true);
+  const [checking, setChecking] = useState(false);
+
+  // IPC helpers
+  const ipc = (window as any).require ? (window as any).require('electron').ipcRenderer : null;
+
   // Apply instantly on change
   useEffect(() => {
     saveHudSettings(hudSettings);
@@ -73,6 +84,38 @@ const App: React.FC = () => {
       }
     }
   }, [selected]);
+
+  // Fetch version and update status on mount
+  useEffect(() => {
+    if (ipc) {
+      ipc.invoke('get-app-version').then(setAppVersion);
+      ipc.invoke('get-update-status').then((data: any) => {
+        setUpdateStatus(data.status);
+        setUpdateInfo(data.info);
+        setAutoUpdate(data.autoUpdate);
+      });
+      ipc.on('update-status', (_event: any, { status, info }: any) => {
+        setUpdateStatus(status);
+        setUpdateInfo(info);
+        setChecking(false);
+      });
+    }
+    return () => {
+      if (ipc) ipc.removeAllListeners('update-status');
+    };
+  }, []);
+
+  const handleManualCheck = () => {
+    if (ipc) {
+      setChecking(true);
+      ipc.invoke('check-for-updates');
+    }
+  };
+  const handleToggleAutoUpdate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked;
+    setAutoUpdate(enabled);
+    if (ipc) ipc.invoke('set-auto-update', enabled);
+  };
 
   const handleReset = () => {
     setHudSettings({ ...defaultHudSettings });
@@ -179,8 +222,10 @@ const App: React.FC = () => {
                   style={{ marginLeft: 12 }}
                 >
                   <option value="top-left">Top Left</option>
+                  <option value="top-center">Top Center</option>
                   <option value="top-right">Top Right</option>
                   <option value="bottom-left">Bottom Left</option>
+                  <option value="bottom-center">Bottom Center</option>
                   <option value="bottom-right">Bottom Right</option>
                   <option value="center">Center</option>
                 </select>
@@ -243,6 +288,55 @@ const App: React.FC = () => {
                 <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>12:34:56 PM</span>
               )}
               <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>(00:12:34 left)</span>
+            </div>
+          </>
+        )}
+        {selected === 'updates' && (
+          <>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Updates</h2>
+            <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 500 }}>
+              <div style={{ marginBottom: 12 }}>
+                <b>Current Version:</b> {appVersion}
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <b>Update Status:</b> {checking ? 'Checking...' : updateStatus.charAt(0).toUpperCase() + updateStatus.slice(1)}
+              </div>
+              {updateStatus === 'available' && updateInfo && (
+                <div style={{ marginBottom: 12, color: '#4fa3e3' }}>
+                  <b>New version available:</b> {updateInfo.version || ''}
+                </div>
+              )}
+              {updateStatus === 'downloading' && updateInfo && (
+                <div style={{ marginBottom: 12, color: '#4fa3e3' }}>
+                  <b>Downloading update...</b> {updateInfo.percent ? `${Math.round(updateInfo.percent)}%` : ''}
+                </div>
+              )}
+              {updateStatus === 'downloaded' && updateInfo && (
+                <div style={{ marginBottom: 12, color: '#4fa3e3' }}>
+                  <b>Update downloaded!</b> Restart the app to apply the update.
+                </div>
+              )}
+              {updateStatus === 'error' && updateInfo && (
+                <div style={{ marginBottom: 12, color: 'red' }}>
+                  <b>Update error:</b> {updateInfo.message || String(updateInfo)}
+                </div>
+              )}
+              {updateInfo && updateInfo.releaseNotes && (
+                <div style={{ marginBottom: 12 }}>
+                  <b>Release Notes:</b>
+                  <div style={{ background: '#2222', padding: 10, borderRadius: 6, marginTop: 4, maxHeight: 120, overflowY: 'auto', fontSize: 15 }}
+                    dangerouslySetInnerHTML={{ __html: updateInfo.releaseNotes }} />
+                </div>
+              )}
+              <div style={{ marginBottom: 12 }}>
+                <button onClick={handleManualCheck} disabled={checking} style={{
+                  background: '#4fa3e3', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 500, marginRight: 16
+                }}>Check for Updates</button>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 15 }}>
+                  <input type="checkbox" checked={autoUpdate} onChange={handleToggleAutoUpdate} />
+                  Enable Auto-Update
+                </label>
+              </div>
             </div>
           </>
         )}

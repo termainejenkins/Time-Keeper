@@ -42,12 +42,17 @@ const path = __importStar(require("path"));
 const local_1 = require("./main/tasks/local");
 const menu_1 = require("./shared/menu");
 const electron_store_1 = __importDefault(require("electron-store"));
+const electron_updater_1 = require("electron-updater");
 class MainProcess {
     constructor() {
         this.mainWindow = null;
         this.managementWindow = null;
         this.tray = null;
         this.settingsStore = new electron_store_1.default();
+        this.updateStatus = 'idle';
+        this.updateInfo = null;
+        this.updateStore = new electron_store_1.default();
+        this.autoUpdateEnabled = this.updateStore.get('autoUpdate', true);
         this.init();
     }
     init() {
@@ -89,6 +94,54 @@ class MainProcess {
             });
             electron_1.ipcMain.on('test-event', (_event, data) => {
                 console.log('[IPC] test-event received:', data);
+            });
+            // Auto-update logic
+            if (this.autoUpdateEnabled) {
+                electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+            }
+            electron_updater_1.autoUpdater.on('checking-for-update', () => {
+                this.sendUpdateStatusToAll('checking');
+            });
+            electron_updater_1.autoUpdater.on('update-available', (info) => {
+                this.sendUpdateStatusToAll('available', info);
+            });
+            electron_updater_1.autoUpdater.on('update-not-available', (info) => {
+                this.sendUpdateStatusToAll('not-available', info);
+            });
+            electron_updater_1.autoUpdater.on('download-progress', (progress) => {
+                this.sendUpdateStatusToAll('downloading', progress);
+            });
+            electron_updater_1.autoUpdater.on('update-downloaded', (info) => {
+                this.sendUpdateStatusToAll('downloaded', info);
+                electron_1.dialog.showMessageBox({
+                    type: 'info',
+                    title: 'Update Ready',
+                    message: 'A new version has been downloaded. Restart to apply the update?',
+                    buttons: ['Restart', 'Later'],
+                    defaultId: 0,
+                }).then(result => {
+                    if (result.response === 0) {
+                        electron_updater_1.autoUpdater.quitAndInstall();
+                    }
+                });
+            });
+            electron_updater_1.autoUpdater.on('error', (err) => {
+                this.sendUpdateStatusToAll('error', err);
+            });
+            // IPC for update info and actions
+            electron_1.ipcMain.handle('get-app-version', () => electron_1.app.getVersion());
+            electron_1.ipcMain.handle('get-update-status', () => ({ status: this.updateStatus, info: this.updateInfo, autoUpdate: this.autoUpdateEnabled }));
+            electron_1.ipcMain.handle('check-for-updates', () => {
+                electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+                return true;
+            });
+            electron_1.ipcMain.handle('set-auto-update', (_event, enabled) => {
+                this.autoUpdateEnabled = enabled;
+                this.updateStore.set('autoUpdate', enabled);
+                if (enabled) {
+                    electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+                }
+                return enabled;
             });
             // TODO: Add system tray integration here
         });
@@ -191,10 +244,10 @@ class MainProcess {
         }
         console.log('Opening Options window');
         const { workArea } = electron_1.screen.getPrimaryDisplay();
-        const winWidth = Math.round(workArea.width * 0.98);
-        const winHeight = Math.round(workArea.height * 0.98);
-        const x = workArea.x + Math.round((workArea.width - winWidth) / 2);
-        const y = workArea.y + Math.round((workArea.height - winHeight) / 2);
+        const winWidth = workArea.width; // 100% of work area
+        const winHeight = workArea.height; // 100% of work area
+        const x = workArea.x;
+        const y = workArea.y;
         const appIconPath = this.getAppIconPathAndLog();
         this.managementWindow = new electron_1.BrowserWindow({
             width: winWidth,
@@ -311,12 +364,20 @@ class MainProcess {
                 x = 20;
                 y = 20;
                 break;
+            case 'top-center':
+                x = Math.round((screenW - hudW) / 2);
+                y = 20;
+                break;
             case 'top-right':
                 x = screenW - hudW - 20;
                 y = 20;
                 break;
             case 'bottom-left':
                 x = 20;
+                y = screenH - hudH - 20;
+                break;
+            case 'bottom-center':
+                x = Math.round((screenW - hudW) / 2);
                 y = screenH - hudH - 20;
                 break;
             case 'bottom-right':
@@ -333,6 +394,13 @@ class MainProcess {
         }
         console.log(`[HUD] setPosition: (${x}, ${y}) for placement: ${placement}, window size: (${hudW}, ${hudH}), screen: (${screenW}, ${screenH})`);
         this.mainWindow.setPosition(x, y);
+    }
+    sendUpdateStatusToAll(status, info = null) {
+        this.updateStatus = status;
+        this.updateInfo = info;
+        electron_1.BrowserWindow.getAllWindows().forEach(win => {
+            win.webContents.send('update-status', { status, info });
+        });
     }
 }
 new MainProcess();

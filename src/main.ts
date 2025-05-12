@@ -1,18 +1,24 @@
 console.log("Main process started")
 
-import { app, BrowserWindow, screen, ipcMain, Menu, Tray, nativeImage, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, Menu, Tray, nativeImage, MenuItemConstructorOptions, dialog } from 'electron';
 import * as path from 'path';
 import { getLocalTasks, addLocalTask, updateLocalTask, deleteLocalTask } from './main/tasks/local';
 import { sharedMenu } from './shared/menu';
 import Store from 'electron-store';
+import { autoUpdater } from 'electron-updater';
 
 class MainProcess {
   private mainWindow: BrowserWindow | null = null;
   private managementWindow: BrowserWindow | null = null;
   private tray: Tray | null = null;
   private settingsStore = new Store<{ hudPlacement: string }>();
+  private updateStatus: string = 'idle';
+  private updateInfo: any = null;
+  private autoUpdateEnabled: boolean;
+  private updateStore = new Store<{ autoUpdate: boolean }>();
 
   constructor() {
+    this.autoUpdateEnabled = this.updateStore.get('autoUpdate', true);
     this.init();
   }
 
@@ -55,6 +61,54 @@ class MainProcess {
       });
       ipcMain.on('test-event', (_event, data) => {
         console.log('[IPC] test-event received:', data);
+      });
+      // Auto-update logic
+      if (this.autoUpdateEnabled) {
+        autoUpdater.checkForUpdatesAndNotify();
+      }
+      autoUpdater.on('checking-for-update', () => {
+        this.sendUpdateStatusToAll('checking');
+      });
+      autoUpdater.on('update-available', (info) => {
+        this.sendUpdateStatusToAll('available', info);
+      });
+      autoUpdater.on('update-not-available', (info) => {
+        this.sendUpdateStatusToAll('not-available', info);
+      });
+      autoUpdater.on('download-progress', (progress) => {
+        this.sendUpdateStatusToAll('downloading', progress);
+      });
+      autoUpdater.on('update-downloaded', (info) => {
+        this.sendUpdateStatusToAll('downloaded', info);
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'Update Ready',
+          message: 'A new version has been downloaded. Restart to apply the update?',
+          buttons: ['Restart', 'Later'],
+          defaultId: 0,
+        }).then(result => {
+          if (result.response === 0) {
+            autoUpdater.quitAndInstall();
+          }
+        });
+      });
+      autoUpdater.on('error', (err) => {
+        this.sendUpdateStatusToAll('error', err);
+      });
+      // IPC for update info and actions
+      ipcMain.handle('get-app-version', () => app.getVersion());
+      ipcMain.handle('get-update-status', () => ({ status: this.updateStatus, info: this.updateInfo, autoUpdate: this.autoUpdateEnabled }));
+      ipcMain.handle('check-for-updates', () => {
+        autoUpdater.checkForUpdatesAndNotify();
+        return true;
+      });
+      ipcMain.handle('set-auto-update', (_event, enabled: boolean) => {
+        this.autoUpdateEnabled = enabled;
+        this.updateStore.set('autoUpdate', enabled);
+        if (enabled) {
+          autoUpdater.checkForUpdatesAndNotify();
+        }
+        return enabled;
       });
       // TODO: Add system tray integration here
     });
@@ -157,10 +211,10 @@ class MainProcess {
     }
     console.log('Opening Options window');
     const { workArea } = screen.getPrimaryDisplay();
-    const winWidth = Math.round(workArea.width * 0.98);
-    const winHeight = Math.round(workArea.height * 0.98);
-    const x = workArea.x + Math.round((workArea.width - winWidth) / 2);
-    const y = workArea.y + Math.round((workArea.height - winHeight) / 2);
+    const winWidth = workArea.width; // 100% of work area
+    const winHeight = workArea.height; // 100% of work area
+    const x = workArea.x;
+    const y = workArea.y;
     const appIconPath = this.getAppIconPathAndLog();
     this.managementWindow = new BrowserWindow({
       width: winWidth,
@@ -272,12 +326,20 @@ class MainProcess {
         x = 20;
         y = 20;
         break;
+      case 'top-center':
+        x = Math.round((screenW - hudW) / 2);
+        y = 20;
+        break;
       case 'top-right':
         x = screenW - hudW - 20;
         y = 20;
         break;
       case 'bottom-left':
         x = 20;
+        y = screenH - hudH - 20;
+        break;
+      case 'bottom-center':
+        x = Math.round((screenW - hudW) / 2);
         y = screenH - hudH - 20;
         break;
       case 'bottom-right':
@@ -294,6 +356,14 @@ class MainProcess {
     }
     console.log(`[HUD] setPosition: (${x}, ${y}) for placement: ${placement}, window size: (${hudW}, ${hudH}), screen: (${screenW}, ${screenH})`);
     this.mainWindow.setPosition(x, y);
+  }
+
+  private sendUpdateStatusToAll(status: string, info: any = null) {
+    this.updateStatus = status;
+    this.updateInfo = info;
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('update-status', { status, info });
+    });
   }
 }
 
