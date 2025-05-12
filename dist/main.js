@@ -43,6 +43,7 @@ const local_1 = require("./main/tasks/local");
 const menu_1 = require("./shared/menu");
 const electron_store_1 = __importDefault(require("electron-store"));
 const electron_updater_1 = require("electron-updater");
+const google_1 = require("./main/calendar/google");
 class MainProcess {
     constructor() {
         this.mainWindow = null;
@@ -160,6 +161,35 @@ class MainProcess {
             electron_1.ipcMain.handle('create-task-list', (_event, name) => (0, local_1.createTaskList)(name));
             electron_1.ipcMain.handle('rename-task-list', (_event, id, name) => { (0, local_1.renameTaskList)(id, name); return true; });
             electron_1.ipcMain.handle('delete-task-list', (_event, id) => { (0, local_1.deleteTaskList)(id); return true; });
+            // IPC for Google Calendar
+            electron_1.ipcMain.handle('google-calendar-sign-in', async () => {
+                try {
+                    await (0, google_1.authenticateWithGoogleCalendar)();
+                    return { success: true };
+                }
+                catch (e) {
+                    return { success: false, error: e?.message || String(e) };
+                }
+            });
+            electron_1.ipcMain.handle('google-calendar-sign-out', () => {
+                const store = new electron_store_1.default();
+                store.delete('google_tokens');
+                return { success: true };
+            });
+            electron_1.ipcMain.handle('google-calendar-status', () => {
+                const store = new electron_store_1.default();
+                const tokens = store.get('google_tokens');
+                return { signedIn: !!tokens };
+            });
+            electron_1.ipcMain.handle('google-calendar-events', async () => {
+                try {
+                    const events = await (0, google_1.fetchGoogleCalendarEvents)();
+                    return { success: true, events };
+                }
+                catch (e) {
+                    return { success: false, error: e?.message || String(e) };
+                }
+            });
             // TODO: Add system tray integration here
         });
         electron_1.app.on('window-all-closed', () => {
