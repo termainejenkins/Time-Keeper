@@ -15,6 +15,8 @@ const HUD: React.FC = () => {
   const [showCurrentTime, setShowCurrentTime] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const ipcRenderer = (window as any).require?.('electron')?.ipcRenderer;
+  const [titleScale, setTitleScale] = useState(1);
+  const titleRef = useRef<HTMLSpanElement>(null);
 
   // Place getCurrentAndNextTask function here (above useEffect)
   const getCurrentAndNextTask = (tasks: LocalTask[], now: Date) => {
@@ -333,6 +335,34 @@ const HUD: React.FC = () => {
     }
   };
 
+  // Add this new function to handle text scaling
+  const adjustTitleScale = () => {
+    if (!titleRef.current || !currentTask) return;
+    
+    const container = titleRef.current.parentElement;
+    if (!container) return;
+
+    const containerWidth = container.clientWidth;
+    const titleWidth = titleRef.current.scrollWidth;
+    
+    if (titleWidth > containerWidth) {
+      const scale = Math.max(0.7, containerWidth / titleWidth);
+      setTitleScale(scale);
+    } else {
+      setTitleScale(1);
+    }
+  };
+
+  // Adjust title scale when current task changes or window resizes
+  useEffect(() => {
+    adjustTitleScale();
+    const handleResize = () => {
+      adjustTitleScale();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [currentTask]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -349,7 +379,7 @@ const HUD: React.FC = () => {
         pointerEvents: 'auto',
         width: 40,
         height: 40,
-        background: 'rgba(255,255,255,0.01)', // nearly invisible but hit-testable
+        background: 'rgba(255,255,255,0.01)',
         borderRadius: 8,
       }}>
         <button
@@ -451,6 +481,7 @@ const HUD: React.FC = () => {
           </div>
         )}
       </div>
+
       {/* Main HUD container with pointerEvents: 'none' */}
       <div className="hud-container" style={{ pointerEvents: 'none' }}>
         <div className="current-task-prominent" style={{
@@ -460,12 +491,34 @@ const HUD: React.FC = () => {
           textShadow: '0 1px 4px rgba(0,0,0,0.10)',
           marginBottom: 4,
           textAlign: 'center',
+          width: '100%',
+          overflow: 'hidden'
         }}>
           {currentTask ? (
             <>
-              Now: <span style={{ textDecoration: 'underline' }}>{currentTask.title}</span>
+              Now: <span 
+                ref={titleRef}
+                style={{
+                  textDecoration: 'underline',
+                  display: 'inline-block',
+                  transform: `scale(${titleScale})`,
+                  transformOrigin: 'center',
+                  transition: 'transform 0.2s ease-out',
+                  maxWidth: '100%'
+                }}
+              >
+                {currentTask.title}
+              </span>
               {currentTask.repeat && currentTask.repeat !== 'none' && (
-                <span style={{ marginLeft: 8, color: '#888', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
+                <span style={{ 
+                  marginLeft: 8, 
+                  color: '#888', 
+                  fontSize: '0.7em', 
+                  whiteSpace: 'nowrap', 
+                  verticalAlign: 'middle', 
+                  lineHeight: 1,
+                  display: 'inline-block',
+                }}>
                   [{formatRepeatLabel(currentTask)}]
                 </span>
               )}

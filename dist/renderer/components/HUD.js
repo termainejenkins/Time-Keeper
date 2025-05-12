@@ -15,6 +15,8 @@ const HUD = () => {
     const [showCurrentTime, setShowCurrentTime] = (0, react_1.useState)(false);
     const menuRef = (0, react_1.useRef)(null);
     const ipcRenderer = window.require?.('electron')?.ipcRenderer;
+    const [titleScale, setTitleScale] = (0, react_1.useState)(1);
+    const titleRef = (0, react_1.useRef)(null);
     // Place getCurrentAndNextTask function here (above useEffect)
     const getCurrentAndNextTask = (tasks, now) => {
         let current = null;
@@ -336,6 +338,32 @@ const HUD = () => {
                 return task.repeat.charAt(0).toUpperCase() + task.repeat.slice(1);
         }
     };
+    // Add this new function to handle text scaling
+    const adjustTitleScale = () => {
+        if (!titleRef.current || !currentTask)
+            return;
+        const container = titleRef.current.parentElement;
+        if (!container)
+            return;
+        const containerWidth = container.clientWidth;
+        const titleWidth = titleRef.current.scrollWidth;
+        if (titleWidth > containerWidth) {
+            const scale = Math.max(0.7, containerWidth / titleWidth);
+            setTitleScale(scale);
+        }
+        else {
+            setTitleScale(1);
+        }
+    };
+    // Adjust title scale when current task changes or window resizes
+    (0, react_1.useEffect)(() => {
+        adjustTitleScale();
+        const handleResize = () => {
+            adjustTitleScale();
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [currentTask]);
     return ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.5 }, style: { position: 'relative' }, children: [(0, jsx_runtime_1.jsxs)("div", { style: {
                     position: 'absolute',
                     top: 0,
@@ -344,7 +372,7 @@ const HUD = () => {
                     pointerEvents: 'auto',
                     width: 40,
                     height: 40,
-                    background: 'rgba(255,255,255,0.01)', // nearly invisible but hit-testable
+                    background: 'rgba(255,255,255,0.01)',
                     borderRadius: 8,
                 }, children: [(0, jsx_runtime_1.jsxs)("button", { className: "hud-hamburger", style: {
                             width: 32,
@@ -401,6 +429,23 @@ const HUD = () => {
                             textShadow: '0 1px 4px rgba(0,0,0,0.10)',
                             marginBottom: 4,
                             textAlign: 'center',
-                        }, children: currentTask ? ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: ["Now: ", (0, jsx_runtime_1.jsx)("span", { style: { textDecoration: 'underline' }, children: currentTask.title }), currentTask.repeat && currentTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#888', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }, children: ["[", formatRepeatLabel(currentTask), "]"] }))] })) : ((0, jsx_runtime_1.jsx)("span", { style: { fontStyle: 'italic', color: '#7fa7c7' }, children: "Idle" })) }), (0, jsx_runtime_1.jsx)("div", { className: "current-task-timer", style: { fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 8 }, children: currentTask ? `(${formatTimeHMS(timeLeft)} left)` : '' }), showCurrentTime && ((0, jsx_runtime_1.jsx)("div", { className: "current-time", style: { fontSize: '1em', fontWeight: 500, marginBottom: 4 }, children: currentTime?.toLocaleTimeString() })), nextTask && ((0, jsx_runtime_1.jsxs)("div", { className: "next-event", style: { fontSize: '0.95em', color: '#888', textAlign: 'center', opacity: 0.7, marginTop: 2 }, children: ["Next: ", (0, jsx_runtime_1.jsx)("span", { children: nextTask.title }), nextTask.repeat && nextTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }, children: ["[", formatRepeatLabel(nextTask), "]"] })), (0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#aaa', fontSize: '0.9em' }, children: ["(in ", formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0)), ")"] })] }))] })] }));
+                            width: '100%',
+                            overflow: 'hidden'
+                        }, children: currentTask ? ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: ["Now: ", (0, jsx_runtime_1.jsx)("span", { ref: titleRef, style: {
+                                        textDecoration: 'underline',
+                                        display: 'inline-block',
+                                        transform: `scale(${titleScale})`,
+                                        transformOrigin: 'center',
+                                        transition: 'transform 0.2s ease-out',
+                                        maxWidth: '100%'
+                                    }, children: currentTask.title }), currentTask.repeat && currentTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: {
+                                        marginLeft: 8,
+                                        color: '#888',
+                                        fontSize: '0.7em',
+                                        whiteSpace: 'nowrap',
+                                        verticalAlign: 'middle',
+                                        lineHeight: 1,
+                                        display: 'inline-block',
+                                    }, children: ["[", formatRepeatLabel(currentTask), "]"] }))] })) : ((0, jsx_runtime_1.jsx)("span", { style: { fontStyle: 'italic', color: '#7fa7c7' }, children: "Idle" })) }), (0, jsx_runtime_1.jsx)("div", { className: "current-task-timer", style: { fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 8 }, children: currentTask ? `(${formatTimeHMS(timeLeft)} left)` : '' }), showCurrentTime && ((0, jsx_runtime_1.jsx)("div", { className: "current-time", style: { fontSize: '1em', fontWeight: 500, marginBottom: 4 }, children: currentTime?.toLocaleTimeString() })), nextTask && ((0, jsx_runtime_1.jsxs)("div", { className: "next-event", style: { fontSize: '0.95em', color: '#888', textAlign: 'center', opacity: 0.7, marginTop: 2 }, children: ["Next: ", (0, jsx_runtime_1.jsx)("span", { children: nextTask.title }), nextTask.repeat && nextTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }, children: ["[", formatRepeatLabel(nextTask), "]"] })), (0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#aaa', fontSize: '0.9em' }, children: ["(in ", formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0)), ")"] })] }))] })] }));
 };
 exports.default = HUD;

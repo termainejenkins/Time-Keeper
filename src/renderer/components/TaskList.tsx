@@ -95,25 +95,32 @@ const TaskList: React.FC<TaskListProps> = ({ fetchTasksRef, darkMode = false }) 
     // Exit edit mode immediately
     setEditingTaskId(null);
     
-    // Update local state immediately for smooth UI
-    setTasks(prevTasks => {
-      // If this is a new task (no id), add it to the list
-      if (!updatedTask.id) {
-        return [...prevTasks, updatedTask];
-      }
-      // Otherwise update the existing task
-      return prevTasks.map(task => 
-        task.id === updatedTask.id ? updatedTask : task
-      );
-    });
+    // Update local state right away
+    setTasks(prevTasks => 
+      prevTasks.map(task => task.id === updatedTask.id ? updatedTask : task)
+    );
 
     // Send update to main process in the background
     if (updatedTask.id) {
-      ipcRenderer.invoke('tasks:update', updatedTask).catch((error: Error) => {
+      ipcRenderer.invoke('tasks:update', updatedTask).catch((error) => {
         console.error('Error updating task:', error);
         // Only fetch tasks if there was an error to ensure sync
         fetchTasks();
       });
+    }
+  };
+
+  const handleTaskDeleted = async (taskId: string) => {
+    try {
+      // Remove from local state immediately
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      
+      // Send delete to main process
+      await ipcRenderer.invoke('tasks:delete', taskId);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      // Refresh tasks if there was an error
+      fetchTasks();
     }
   };
 
@@ -153,47 +160,78 @@ const TaskList: React.FC<TaskListProps> = ({ fetchTasksRef, darkMode = false }) 
     return (
       <li key={task.id} style={{ 
         marginBottom: 12, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
         background: bgColor, 
-        padding: '8px 12px', 
+        padding: '12px', 
         borderRadius: 6, 
         border: `1px solid ${borderColor}`,
-        color: textColor
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
-        <div>
-          <strong>{task.title}</strong>
-          {(!task.repeat || task.repeat === 'none') && (
-            <span style={{ marginLeft: 8, color: secondaryTextColor }}>
-              ({startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})
-            </span>
-          )}
-          <span style={{ color: darkMode ? '#666' : '#bbb', margin: '0 8px' }}>•</span>
-          <span style={{ color: secondaryTextColor, fontSize: '0.97em' }}>{timeRange}</span>
-          {task.completed && ' ✅'}
-          {task.repeat && task.repeat !== 'none' && (
-            <span style={{ marginLeft: 8, color: secondaryTextColor, fontSize: '0.9em' }}>
-              [{formatRepeatDays(task)}]
-            </span>
+        <div style={{ flex: 1 }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: 4 
+          }}>
+            <h3 style={{ 
+              margin: 0, 
+              fontSize: '1.1em', 
+              color: textColor,
+              fontWeight: 500
+            }}>
+              {task.title}
+            </h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setEditingTaskId(task.id)}
+                style={{
+                  padding: '4px 8px',
+                  background: darkMode ? '#444' : '#f5f5f5',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  color: darkMode ? '#f3f3f3' : '#666',
+                  fontSize: '0.9em'
+                }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleTaskDeleted(task.id)}
+                style={{
+                  padding: '4px 8px',
+                  background: darkMode ? '#442222' : '#ffeeee',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  color: darkMode ? '#ff9999' : '#cc0000',
+                  fontSize: '0.9em'
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+          <div style={{ color: secondaryTextColor, fontSize: '0.9em' }}>
+            {timeRange}
+            {task.repeat && task.repeat !== 'none' && (
+              <span style={{ marginLeft: 8 }}>
+                [{formatRepeatDays(task)}]
+              </span>
+            )}
+          </div>
+          {task.description && (
+            <p style={{ 
+              margin: '4px 0 0', 
+              color: secondaryTextColor,
+              fontSize: '0.9em'
+            }}>
+              {task.description}
+            </p>
           )}
         </div>
-        <button
-          onClick={() => handleEdit(task.id)}
-          style={{
-            background: '#4fa3e3',
-            border: 'none',
-            borderRadius: 4,
-            padding: '6px 12px',
-            cursor: 'pointer',
-            fontSize: '0.9em',
-            color: '#fff',
-            fontWeight: 500,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}
-        >
-          Edit
-        </button>
       </li>
     );
   };
