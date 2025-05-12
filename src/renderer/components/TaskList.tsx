@@ -102,7 +102,7 @@ const TaskList: React.FC<TaskListProps> = ({ fetchTasksRef, darkMode = false }) 
 
     // Send update to main process in the background
     if (updatedTask.id) {
-      ipcRenderer.invoke('tasks:update', updatedTask).catch((error) => {
+      ipcRenderer.invoke('tasks:update', updatedTask).catch((error: unknown) => {
         console.error('Error updating task:', error);
         // Only fetch tasks if there was an error to ensure sync
         fetchTasks();
