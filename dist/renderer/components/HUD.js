@@ -24,45 +24,110 @@ const HUD = () => {
             if (!task.repeat || task.repeat === 'none') {
                 occurrences = [{ start: new Date(task.start), end: new Date(task.end) }];
             }
-            else if (task.repeat === 'daily') {
+            else {
                 const baseStart = new Date(task.start);
                 const baseEnd = new Date(task.end);
-                const todayStart = new Date(now);
-                todayStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
-                const todayEnd = new Date(todayStart);
-                todayEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
-                if (todayEnd <= todayStart)
-                    todayEnd.setDate(todayEnd.getDate() + 1); // handle overnight
-                occurrences.push({ start: todayStart, end: todayEnd });
-                // If already past, add tomorrow
-                if (todayEnd <= now) {
-                    const tomorrowStart = new Date(todayStart);
-                    tomorrowStart.setDate(todayStart.getDate() + 1);
-                    const tomorrowEnd = new Date(todayEnd);
-                    tomorrowEnd.setDate(todayEnd.getDate() + 1);
-                    occurrences.push({ start: tomorrowStart, end: tomorrowEnd });
-                }
-            }
-            else if (task.repeat === 'weekly') {
-                const baseStart = new Date(task.start);
-                const baseEnd = new Date(task.end);
-                const today = new Date(now);
-                const dayDiff = (baseStart.getDay() - today.getDay() + 7) % 7;
-                const thisWeekStart = new Date(today);
-                thisWeekStart.setDate(today.getDate() + dayDiff);
-                thisWeekStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
-                const thisWeekEnd = new Date(thisWeekStart);
-                thisWeekEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
-                if (thisWeekEnd <= thisWeekStart)
-                    thisWeekEnd.setDate(thisWeekEnd.getDate() + 1); // handle overnight
-                occurrences.push({ start: thisWeekStart, end: thisWeekEnd });
-                // If already past, add next week
-                if (thisWeekEnd <= now) {
-                    const nextWeekStart = new Date(thisWeekStart);
-                    nextWeekStart.setDate(thisWeekStart.getDate() + 7);
-                    const nextWeekEnd = new Date(thisWeekEnd);
-                    nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
-                    occurrences.push({ start: nextWeekStart, end: nextWeekEnd });
+                const duration = baseEnd.getTime() - baseStart.getTime();
+                switch (task.repeat) {
+                    case 'daily': {
+                        const todayStart = new Date(now);
+                        todayStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+                        const todayEnd = new Date(todayStart);
+                        todayEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+                        if (todayEnd <= todayStart)
+                            todayEnd.setDate(todayEnd.getDate() + 1);
+                        occurrences.push({ start: todayStart, end: todayEnd });
+                        if (todayEnd <= now) {
+                            const tomorrowStart = new Date(todayStart);
+                            tomorrowStart.setDate(todayStart.getDate() + 1);
+                            const tomorrowEnd = new Date(todayEnd);
+                            tomorrowEnd.setDate(todayEnd.getDate() + 1);
+                            occurrences.push({ start: tomorrowStart, end: tomorrowEnd });
+                        }
+                        break;
+                    }
+                    case 'weekly': {
+                        const dayDiff = (baseStart.getDay() - now.getDay() + 7) % 7;
+                        const thisWeekStart = new Date(now);
+                        thisWeekStart.setDate(now.getDate() + dayDiff);
+                        thisWeekStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+                        const thisWeekEnd = new Date(thisWeekStart);
+                        thisWeekEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+                        if (thisWeekEnd <= thisWeekStart)
+                            thisWeekEnd.setDate(thisWeekEnd.getDate() + 1);
+                        occurrences.push({ start: thisWeekStart, end: thisWeekEnd });
+                        if (thisWeekEnd <= now) {
+                            const nextWeekStart = new Date(thisWeekStart);
+                            nextWeekStart.setDate(thisWeekStart.getDate() + 7);
+                            const nextWeekEnd = new Date(thisWeekEnd);
+                            nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
+                            occurrences.push({ start: nextWeekStart, end: nextWeekEnd });
+                        }
+                        break;
+                    }
+                    case 'weekdays': {
+                        if (task.repeatSettings?.type === 'weekdays') {
+                            const settings = task.repeatSettings;
+                            let daysToAdd = 0;
+                            while (daysToAdd < 7) {
+                                const checkDate = new Date(now);
+                                checkDate.setDate(now.getDate() + daysToAdd);
+                                if (settings.days.includes(checkDate.getDay())) {
+                                    const start = new Date(checkDate);
+                                    start.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+                                    const end = new Date(start);
+                                    end.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+                                    if (end <= start)
+                                        end.setDate(end.getDate() + 1);
+                                    occurrences.push({ start, end });
+                                }
+                                daysToAdd++;
+                            }
+                        }
+                        break;
+                    }
+                    case 'weekends': {
+                        const day = now.getDay();
+                        let nextWeekendDay = day === 0 ? 6 : day === 6 ? 0 : 6;
+                        const start = new Date(now);
+                        start.setDate(now.getDate() + (nextWeekendDay - day + 7) % 7);
+                        start.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+                        const end = new Date(start);
+                        end.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+                        if (end <= start)
+                            end.setDate(end.getDate() + 1);
+                        occurrences.push({ start, end });
+                        break;
+                    }
+                    case 'every_other_day': {
+                        const daysSinceStart = Math.floor((now.getTime() - baseStart.getTime()) / (24 * 60 * 60 * 1000));
+                        const nextDay = baseStart.getDate() + Math.ceil((daysSinceStart + 1) / 2) * 2;
+                        const start = new Date(now);
+                        start.setDate(nextDay);
+                        start.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+                        const end = new Date(start);
+                        end.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+                        if (end <= start)
+                            end.setDate(end.getDate() + 1);
+                        occurrences.push({ start, end });
+                        break;
+                    }
+                    case 'custom': {
+                        if (task.repeatSettings?.type === 'custom_days') {
+                            const settings = task.repeatSettings;
+                            const daysSinceStart = Math.floor((now.getTime() - baseStart.getTime()) / (24 * 60 * 60 * 1000));
+                            const nextDay = baseStart.getDate() + Math.ceil((daysSinceStart + 1) / settings.interval) * settings.interval;
+                            const start = new Date(now);
+                            start.setDate(nextDay);
+                            start.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+                            const end = new Date(start);
+                            end.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+                            if (end <= start)
+                                end.setDate(end.getDate() + 1);
+                            occurrences.push({ start, end });
+                        }
+                        break;
+                    }
                 }
             }
             for (const occ of occurrences) {

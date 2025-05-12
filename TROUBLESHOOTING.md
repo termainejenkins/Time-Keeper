@@ -69,4 +69,15 @@ This ensures Electron can always find your JS bundle and assets.
   - Error handling refreshes the list only if needed
 - **Note:** This change improves the user experience by making updates appear instant while maintaining data consistency.
 
+## HUD Task Display Issues
+- **Problem:** Tasks created in the options menu were not appearing in the HUD window.
+- **Cause:** The HUD component's task calculation logic did not properly handle all repeat types (weekdays, weekends, every_other_day, custom).
+- **Solution:** Enhanced the `getCurrentAndNextTask` function to support all repeat types and improved task occurrence calculations.
+- **Technical Details:**
+  - Added support for all repeat types in task occurrence calculations
+  - Improved date handling for recurring tasks
+  - Enhanced accuracy of next occurrence calculations
+  - Better handling of task durations and intervals
+- **Note:** The HUD now correctly displays all tasks, including those with complex repeat patterns.
+
 _Add new issues and solutions here as they are discovered!_ 

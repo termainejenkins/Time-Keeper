@@ -38,6 +38,11 @@ This document tracks the progress of development work on the Time Keeper app. Up
   - Modified task update flow to prevent UI blanking
   - Improved error handling and state management
   - Enhanced user experience with instant visual feedback
+- Fixed task display in HUD:
+  - Added support for all repeat types (daily, weekly, weekdays, weekends, every_other_day, custom)
+  - Improved task occurrence calculation for repeating tasks
+  - Fixed issue where tasks weren't appearing in HUD despite being in options menu
+  - Enhanced handling of task start/end times for better accuracy
 
 ### UI/UX Enhancements
 - Implemented dark mode color scheme:
@@ -62,6 +67,11 @@ This document tracks the progress of development work on the Time Keeper app. Up
   - Update local state before server response
   - Only fetch tasks on error to ensure sync
   - Reduced number of state updates for smoother experience
+- Enhanced getCurrentAndNextTask function in HUD component:
+  - Added comprehensive support for all repeat types
+  - Improved date calculation logic for recurring tasks
+  - Better handling of task durations and intervals
+  - More accurate next occurrence calculations
 
 ### Testing Notes
 - Verified dark mode colors in both themes
@@ -72,6 +82,10 @@ This document tracks the progress of development work on the Time Keeper app. Up
 - Confirmed UI remains visible during updates
 - Tested error handling and recovery
 - Validated data consistency between UI and storage
+- Verified all repeat types display correctly in HUD
+- Confirmed task timing calculations are accurate
+- Tested edge cases for recurring tasks
+- Validated task transitions and updates
 
 ### Next Steps
 - Consider adding animations for edit transitions
