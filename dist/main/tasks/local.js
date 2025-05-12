@@ -47,10 +47,20 @@ function setActiveListId(id) {
 function saveLists(lists) {
     store.set('lists', lists);
 }
+function getActiveList() {
+    const lists = getListsObj();
+    const activeListId = store.get('activeListId');
+    return lists[activeListId];
+}
+function saveActiveList(list) {
+    const lists = getListsObj();
+    lists[list.id] = list;
+    saveLists(lists);
+}
 function processTaskExpiration(tasks) {
     const now = Date.now();
     return tasks.map(task => {
-        // Only non-repeating, non-archived, not completed
+        // Only process non-repeating, non-archived, not completed tasks
         if (!task.archived && !task.completed && (task.repeat === undefined || task.repeat === 'none')) {
             const endTime = new Date(task.end).getTime();
             if (endTime < now) {
@@ -66,6 +76,75 @@ function processTaskExpiration(tasks) {
         }
         return task;
     });
+}
+function getNextOccurrence(task, fromDate) {
+    const start = new Date(task.start);
+    const end = new Date(task.end);
+    const duration = end.getTime() - start.getTime();
+    if (!task.repeat || task.repeat === 'none') {
+        return start > fromDate ? start : null;
+    }
+    const nextDate = new Date(fromDate);
+    nextDate.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), 0);
+    switch (task.repeat) {
+        case 'daily':
+            if (nextDate < fromDate) {
+                nextDate.setDate(nextDate.getDate() + 1);
+            }
+            break;
+        case 'weekly':
+            const dayDiff = (start.getDay() - fromDate.getDay() + 7) % 7;
+            nextDate.setDate(fromDate.getDate() + (dayDiff === 0 && fromDate < start ? 0 : dayDiff || 7));
+            break;
+        case 'weekdays':
+            if (task.repeatSettings?.type === 'weekdays') {
+                const settings = task.repeatSettings;
+                if (settings.days.length === 0)
+                    return null;
+                let daysToAdd = 0;
+                let found = false;
+                while (!found && daysToAdd < 7) {
+                    const checkDate = new Date(fromDate);
+                    checkDate.setDate(fromDate.getDate() + daysToAdd);
+                    if (settings.days.includes(checkDate.getDay())) {
+                        found = true;
+                        nextDate.setDate(fromDate.getDate() + daysToAdd);
+                    }
+                    daysToAdd++;
+                }
+                if (!found)
+                    return null;
+            }
+            break;
+        case 'weekends':
+            const day = fromDate.getDay();
+            if (day === 0) { // Sunday
+                nextDate.setDate(fromDate.getDate() + 6); // Next Saturday
+            }
+            else if (day === 6) { // Saturday
+                nextDate.setDate(fromDate.getDate() + 1); // Next Sunday
+            }
+            else {
+                nextDate.setDate(fromDate.getDate() + (6 - day)); // Next Saturday
+            }
+            break;
+        case 'every_other_day':
+            const daysSinceStart = Math.floor((fromDate.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+            const nextDay = start.getDate() + Math.ceil((daysSinceStart + 1) / 2) * 2;
+            nextDate.setDate(nextDay);
+            break;
+        case 'custom':
+            if (task.repeatSettings?.type === 'custom_days') {
+                const settings = task.repeatSettings;
+                const daysSinceStart = Math.floor((fromDate.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+                const nextDay = start.getDate() + Math.ceil((daysSinceStart + 1) / settings.interval) * settings.interval;
+                nextDate.setDate(nextDay);
+            }
+            break;
+        default:
+            return null;
+    }
+    return nextDate > fromDate ? nextDate : null;
 }
 function getTaskLists() {
     const lists = getListsObj();
@@ -100,16 +179,6 @@ function deleteTaskList(id) {
         const keys = Object.keys(lists);
         setActiveListId(keys.length ? keys[0] : '');
     }
-    saveLists(lists);
-}
-function getActiveList() {
-    const lists = getListsObj();
-    const id = getActiveListId();
-    return lists[id] || { id, name: 'Unknown', tasks: [] };
-}
-function saveActiveList(list) {
-    const lists = getListsObj();
-    lists[list.id] = list;
     saveLists(lists);
 }
 function getLocalTasks() {

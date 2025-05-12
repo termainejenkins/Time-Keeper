@@ -119,6 +119,55 @@ This document details the major design choices made in the development of the Ti
 
 ---
 
-## 9. Summary
+## 9. Task Management UI Evolution
+
+**Decision:**
+- Implemented inline editing for tasks instead of full-list replacement
+- Added comprehensive dark mode support for task items
+- Enhanced task update UX with better error handling and feedback
+
+**Rationale:**
+- Inline editing maintains context and reduces visual disruption
+- Dark mode support improves usability in low-light conditions
+- Better error handling improves reliability and user confidence
+
+**Implementation Details:**
+- Color scheme for dark mode:
+  - Background: `#2c2f36` (dark) vs `#fff` (light)
+  - Text: `#f3f3f3` (dark) vs `#222` (light)
+  - Borders: `#444` (dark) vs `#eee` (light)
+  - Secondary text: `#b3b3b3` (dark) vs `#888` (light)
+- State management simplified to track editing by task ID
+- Visual feedback enhanced with shadows and spacing
+
+**Design Principles Applied:**
+1. **Consistency**
+   - Uniform spacing and padding
+   - Consistent border radiuses
+   - Cohesive color scheme
+
+2. **Feedback**
+   - Clear visual indicators for editing state
+   - Immediate feedback on actions
+   - Error states clearly communicated
+
+3. **Accessibility**
+   - High contrast ratios in both modes
+   - Clear visual hierarchy
+   - Readable font sizes and weights
+
+4. **Efficiency**
+   - Inline editing reduces context switching
+   - Quick access to edit functionality
+   - Streamlined update process
+
+**Alternatives Considered:**
+- Modal-based editing: rejected for disrupting context
+- Full-list replacement: rejected for poor UX
+- Separate edit window: rejected for complexity
+
+---
+
+## 10. Summary
 
 These design choices prioritize modularity, maintainability, and a clean user experience. As the app grows, further improvements (shared settings store, advanced styling, more robust state management) are planned. 

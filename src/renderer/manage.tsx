@@ -303,7 +303,7 @@ const App: React.FC = () => {
                   ))}
                 </div>
                 <TaskForm onTaskAdded={handleTaskAdded} />
-                <TaskList fetchTasksRef={fetchTasksRef} />
+                <TaskList fetchTasksRef={fetchTasksRef} darkMode={hudSettings.darkMode} />
               </>
             )}
             {/* Google Calendar Section (placeholder) */}

@@ -270,7 +270,6 @@ class MainProcess {
         }
         this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
         this.mainWindow.setIgnoreMouseEvents(true, { forward: true });
-        this.mainWindow.webContents.openDevTools({ mode: 'detach' });
         this.mainWindow.webContents.on('context-menu', (_event, params) => {
             this.mainWindow.setIgnoreMouseEvents(false);
             const menu = electron_1.Menu.buildFromTemplate(this.buildMenuTemplate());

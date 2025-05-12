@@ -14,4 +14,4 @@ mac:
   target: dmg
 linux:
   target: AppImage
-electronVersion: 36.2.0
+electronVersion: 28.3.3

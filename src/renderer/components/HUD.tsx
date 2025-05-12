@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { LocalTask } from '../../shared/types/task';
+import { LocalTask, CustomRepeatSettings, WeekdayRepeatSettings } from '../../shared/types/task';
+
+const DAY_ABBREVIATIONS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 const HUD: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<Date | null>(new Date());
@@ -227,6 +229,43 @@ const HUD: React.FC = () => {
     }
   };
 
+  const formatRepeatLabel = (task: LocalTask): string => {
+    if (!task.repeat || task.repeat === 'none') return '';
+    
+    switch (task.repeat) {
+      case 'daily':
+        return 'Every day';
+      case 'weekly':
+        return 'Weekly';
+      case 'weekdays':
+        if (task.repeatSettings?.type === 'weekdays') {
+          const settings = task.repeatSettings as WeekdayRepeatSettings;
+          if (settings.days.length === 5 && 
+              settings.days.includes(1) && 
+              settings.days.includes(2) && 
+              settings.days.includes(3) && 
+              settings.days.includes(4) && 
+              settings.days.includes(5)) {
+            return 'M-F';
+          }
+          return settings.days.map(d => DAY_ABBREVIATIONS[d]).join('');
+        }
+        return 'M-F';
+      case 'weekends':
+        return 'Sa-Su';
+      case 'every_other_day':
+        return 'Every 2 days';
+      case 'custom':
+        if (task.repeatSettings?.type === 'custom_days') {
+          const settings = task.repeatSettings as CustomRepeatSettings;
+          return `Every ${settings.interval} days`;
+        }
+        return 'Custom';
+      default:
+        return (task.repeat as string).charAt(0).toUpperCase() + (task.repeat as string).slice(1);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -360,7 +399,7 @@ const HUD: React.FC = () => {
               Now: <span style={{ textDecoration: 'underline' }}>{currentTask.title}</span>
               {currentTask.repeat && currentTask.repeat !== 'none' && (
                 <span style={{ marginLeft: 8, color: '#888', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
-                  [Repeats: {currentTask.repeat.charAt(0).toUpperCase() + currentTask.repeat.slice(1)}]
+                  [{formatRepeatLabel(currentTask)}]
                 </span>
               )}
             </>
@@ -368,7 +407,7 @@ const HUD: React.FC = () => {
             <span style={{ fontStyle: 'italic', color: '#7fa7c7' }}>Idle</span>
           )}
         </div>
-        <div className="current-task-timer" style={{ fontSize: '1em', color: '#555', textAlign: 'center', marginBottom: 8 }}>
+        <div className="current-task-timer" style={{ fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 8 }}>
           {currentTask ? `(${formatTimeHMS(timeLeft)} left)` : ''}
         </div>
         {showCurrentTime && (
@@ -382,7 +421,7 @@ const HUD: React.FC = () => {
             Next: <span>{nextTask.title}</span>
             {nextTask.repeat && nextTask.repeat !== 'none' && (
               <span style={{ marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
-                [Repeats: {nextTask.repeat.charAt(0).toUpperCase() + nextTask.repeat.slice(1)}]
+                [{formatRepeatLabel(nextTask)}]
               </span>
             )}
             <span style={{ marginLeft: 8, color: '#aaa', fontSize: '0.9em' }}>
