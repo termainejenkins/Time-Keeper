@@ -117,7 +117,7 @@ const TaskList: React.FC<TaskListProps> = ({ fetchTasksRef, darkMode = false }) 
       
       // Send delete to main process
       await ipcRenderer.invoke('tasks:delete', taskId);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting task:', error);
       // Refresh tasks if there was an error
       fetchTasks();
