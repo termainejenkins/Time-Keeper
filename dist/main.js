@@ -153,6 +153,13 @@ class MainProcess {
                 (0, local_1.deleteArchivedTask)(id);
                 return true;
             });
+            // IPC for task lists
+            electron_1.ipcMain.handle('get-task-lists', () => (0, local_1.getTaskLists)());
+            electron_1.ipcMain.handle('get-active-task-list-id', () => (0, local_1.getActiveTaskListId)());
+            electron_1.ipcMain.handle('set-active-task-list', (_event, id) => { (0, local_1.setActiveTaskList)(id); return true; });
+            electron_1.ipcMain.handle('create-task-list', (_event, name) => (0, local_1.createTaskList)(name));
+            electron_1.ipcMain.handle('rename-task-list', (_event, id, name) => { (0, local_1.renameTaskList)(id, name); return true; });
+            electron_1.ipcMain.handle('delete-task-list', (_event, id) => { (0, local_1.deleteTaskList)(id); return true; });
             // TODO: Add system tray integration here
         });
         electron_1.app.on('window-all-closed', () => {

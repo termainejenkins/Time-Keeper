@@ -24,6 +24,13 @@ const defaultHudSettings = {
     placement: 'top-center',
     alwaysOnTop: true,
 };
+const defaultViewMode = 'both'; // 'local', 'google', or 'both'
+function getViewMode() {
+    return localStorage.getItem('viewMode') || defaultViewMode;
+}
+function setViewMode(mode) {
+    localStorage.setItem('viewMode', mode);
+}
 const getHudSettings = () => {
     try {
         const raw = localStorage.getItem('hudSettings');
@@ -57,6 +64,12 @@ const App = () => {
     const [updateInfo, setUpdateInfo] = (0, react_1.useState)(null);
     const [autoUpdate, setAutoUpdate] = (0, react_1.useState)(true);
     const [checking, setChecking] = (0, react_1.useState)(false);
+    // View Mode state
+    const [viewMode, setViewModeState] = (0, react_1.useState)(getViewMode());
+    const handleViewModeChange = (e) => {
+        setViewModeState(e.target.value);
+        setViewMode(e.target.value);
+    };
     // IPC helpers
     const ipc = window.require ? window.require('electron').ipcRenderer : null;
     // Archive state
@@ -76,6 +89,45 @@ const App = () => {
     const handleDeleteArchived = (id) => {
         if (ipc)
             ipc.invoke('delete-archived-task', id).then(fetchArchivedTasks);
+    };
+    // Task Lists state
+    const [taskLists, setTaskLists] = (0, react_1.useState)([]);
+    const [activeListId, setActiveListId] = (0, react_1.useState)('');
+    const [newListName, setNewListName] = (0, react_1.useState)('');
+    const [renamingListId, setRenamingListId] = (0, react_1.useState)(null);
+    const [renameValue, setRenameValue] = (0, react_1.useState)('');
+    const fetchTaskLists = (0, react_1.useCallback)(() => {
+        if (ipc) {
+            ipc.invoke('get-task-lists').then(setTaskLists);
+            ipc.invoke('get-active-task-list-id').then(setActiveListId);
+        }
+    }, [ipc]);
+    (0, react_1.useEffect)(() => { if (selected === 'tasks')
+        fetchTaskLists(); }, [selected, fetchTaskLists]);
+    const handleSwitchList = (id) => {
+        if (ipc)
+            ipc.invoke('set-active-task-list', id).then(fetchTaskLists);
+    };
+    const handleCreateList = () => {
+        if (ipc && newListName.trim()) {
+            ipc.invoke('create-task-list', newListName.trim()).then(() => {
+                setNewListName('');
+                fetchTaskLists();
+            });
+        }
+    };
+    const handleRenameList = (id) => {
+        if (ipc && renameValue.trim()) {
+            ipc.invoke('rename-task-list', id, renameValue.trim()).then(() => {
+                setRenamingListId(null);
+                setRenameValue('');
+                fetchTaskLists();
+            });
+        }
+    };
+    const handleDeleteList = (id) => {
+        if (ipc)
+            ipc.invoke('delete-task-list', id).then(fetchTaskLists);
     };
     // Apply instantly on change
     (0, react_1.useEffect)(() => {
@@ -179,7 +231,7 @@ const App = () => {
                     transition: 'background 0.2s, color 0.2s',
                     minHeight: '100vh',
                     boxSizing: 'border-box',
-                }, children: [selected === 'tasks' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "Tasks" }), (0, jsx_runtime_1.jsx)(TaskForm_1.default, { onTaskAdded: handleTaskAdded }), (0, jsx_runtime_1.jsx)(TaskList_1.default, { fetchTasksRef: fetchTasksRef })] })), selected === 'hud' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "HUD Options" }), (0, jsx_runtime_1.jsxs)("div", { style: { color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 400 }, children: [(0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.darkMode, onChange: e => setHudSettings((s) => ({ ...s, darkMode: e.target.checked })) }), "Dark mode"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.showCurrentTime, onChange: e => setHudSettings((s) => ({ ...s, showCurrentTime: e.target.checked })) }), "Show current time"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.clickThrough, onChange: e => setHudSettings((s) => ({ ...s, clickThrough: e.target.checked })) }), "Enable click-through"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.alwaysOnTop, onChange: e => setHudSettings((s) => ({ ...s, alwaysOnTop: e.target.checked })) }), "Always on Top"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: ["Placement", (0, jsx_runtime_1.jsxs)("select", { value: hudSettings.placement, onChange: e => {
+                }, children: [(0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 32, marginTop: 8 }, children: [(0, jsx_runtime_1.jsx)("label", { style: { fontWeight: 600, fontSize: 17, marginRight: 12 }, children: "View Mode:" }), (0, jsx_runtime_1.jsxs)("select", { value: viewMode, onChange: handleViewModeChange, style: { fontSize: 16, padding: '4px 12px', borderRadius: 6 }, children: [(0, jsx_runtime_1.jsx)("option", { value: "local", children: "Local Tasks" }), (0, jsx_runtime_1.jsx)("option", { value: "google", children: "Google Calendar" }), (0, jsx_runtime_1.jsx)("option", { value: "both", children: "Both" })] })] }), selected === 'tasks' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(viewMode === 'local' || viewMode === 'both') && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "Tasks" }), (0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 18 }, children: [(0, jsx_runtime_1.jsx)("label", { style: { fontWeight: 700, fontSize: 17, marginRight: 10, color: hudSettings.darkMode ? '#fff' : '#222' }, children: "Active Task List:" }), (0, jsx_runtime_1.jsx)("select", { value: activeListId, onChange: e => handleSwitchList(e.target.value), style: { fontSize: 16, padding: '5px 12px', borderRadius: 6, marginRight: 10, background: hudSettings.darkMode ? '#23272f' : '#fff', color: hudSettings.darkMode ? '#fff' : '#222', border: '2px solid #4fa3e3', fontWeight: 700, boxShadow: '0 2px 8px rgba(79,163,227,0.10)' }, children: taskLists.map(list => ((0, jsx_runtime_1.jsx)("option", { value: list.id, style: { background: list.id === activeListId ? '#4fa3e3' : (hudSettings.darkMode ? '#23272f' : '#fff'), color: list.id === activeListId ? '#fff' : (hudSettings.darkMode ? '#f3f3f3' : '#222'), fontWeight: list.id === activeListId ? 700 : 500 }, children: list.name }, list.id))) }), (0, jsx_runtime_1.jsx)("input", { type: "text", value: newListName, onChange: e => setNewListName(e.target.value), placeholder: "New list name", style: { fontSize: 15, padding: '4px 10px', borderRadius: 6, marginRight: 6, background: hudSettings.darkMode ? '#23272f' : '#fff', color: hudSettings.darkMode ? '#fff' : '#222', border: '1px solid #aaa' } }), (0, jsx_runtime_1.jsx)("button", { onClick: handleCreateList, style: { fontSize: 15, padding: '4px 12px', borderRadius: 6, background: '#4fa3e3', color: '#fff', border: 'none', fontWeight: 700, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }, children: "+ New" })] }), (0, jsx_runtime_1.jsx)("div", { style: { marginBottom: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }, children: taskLists.map(list => ((0, jsx_runtime_1.jsx)("span", { style: { display: 'inline-flex', alignItems: 'center', gap: 4, background: list.id === activeListId ? '#4fa3e3' : (hudSettings.darkMode ? '#23272f' : '#f6f7fb'), borderRadius: 6, padding: '2px 12px', color: list.id === activeListId ? '#fff' : (hudSettings.darkMode ? '#f3f3f3' : '#222'), fontWeight: list.id === activeListId ? 700 : 500, border: list.id === activeListId ? '2px solid #4fa3e3' : '1px solid #ccc', boxShadow: list.id === activeListId ? '0 2px 8px rgba(79,163,227,0.10)' : 'none' }, children: renamingListId === list.id ? ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("input", { value: renameValue, onChange: e => setRenameValue(e.target.value), style: { fontSize: 14, padding: '2px 6px', borderRadius: 4, background: hudSettings.darkMode ? '#23272f' : '#fff', color: hudSettings.darkMode ? '#fff' : '#222', border: '1px solid #aaa' } }), (0, jsx_runtime_1.jsx)("button", { onClick: () => handleRenameList(list.id), style: { fontSize: 13, marginLeft: 2, color: '#4fa3e3', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }, children: "Save" }), (0, jsx_runtime_1.jsx)("button", { onClick: () => setRenamingListId(null), style: { fontSize: 13, marginLeft: 2, color: '#e34f4f', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }, children: "Cancel" })] })) : ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("span", { children: list.name }), (0, jsx_runtime_1.jsx)("button", { onClick: () => { setRenamingListId(list.id); setRenameValue(list.name); }, style: { fontSize: 13, marginLeft: 2, color: list.id === activeListId ? '#fff' : '#4fa3e3', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }, children: "Rename" }), taskLists.length > 1 && (0, jsx_runtime_1.jsx)("button", { onClick: () => handleDeleteList(list.id), style: { fontSize: 13, marginLeft: 2, color: '#e34f4f', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }, children: "Delete" })] })) }, list.id))) }), (0, jsx_runtime_1.jsx)(TaskForm_1.default, { onTaskAdded: handleTaskAdded }), (0, jsx_runtime_1.jsx)(TaskList_1.default, { fetchTasksRef: fetchTasksRef })] })), (viewMode === 'google' || viewMode === 'both') && ((0, jsx_runtime_1.jsx)("div", { style: { marginTop: 32, color: '#4fa3e3', fontSize: 18 }, children: (0, jsx_runtime_1.jsx)("b", { children: "Google Calendar events will appear here (integration coming soon)." }) }))] })), selected === 'hud' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "HUD Options" }), (0, jsx_runtime_1.jsxs)("div", { style: { color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 400 }, children: [(0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.darkMode, onChange: e => setHudSettings((s) => ({ ...s, darkMode: e.target.checked })) }), "Dark mode"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.showCurrentTime, onChange: e => setHudSettings((s) => ({ ...s, showCurrentTime: e.target.checked })) }), "Show current time"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.clickThrough, onChange: e => setHudSettings((s) => ({ ...s, clickThrough: e.target.checked })) }), "Enable click-through"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: hudSettings.alwaysOnTop, onChange: e => setHudSettings((s) => ({ ...s, alwaysOnTop: e.target.checked })) }), "Always on Top"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: ["Placement", (0, jsx_runtime_1.jsxs)("select", { value: hudSettings.placement, onChange: e => {
                                                     console.log('[Renderer] Placement changed to:', e.target.value);
                                                     setHudSettings((s) => ({ ...s, placement: e.target.value }));
                                                 }, style: { marginLeft: 12 }, children: [(0, jsx_runtime_1.jsx)("option", { value: "top-left", children: "Top Left" }), (0, jsx_runtime_1.jsx)("option", { value: "top-center", children: "Top Center" }), (0, jsx_runtime_1.jsx)("option", { value: "top-right", children: "Top Right" }), (0, jsx_runtime_1.jsx)("option", { value: "bottom-left", children: "Bottom Left" }), (0, jsx_runtime_1.jsx)("option", { value: "bottom-center", children: "Bottom Center" }), (0, jsx_runtime_1.jsx)("option", { value: "bottom-right", children: "Bottom Right" }), (0, jsx_runtime_1.jsx)("option", { value: "center", children: "Center" })] })] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }, children: ["Opacity", (0, jsx_runtime_1.jsx)("input", { type: "range", min: 0.5, max: 1, step: 0.01, value: hudSettings.opacity, onChange: e => setHudSettings((s) => ({ ...s, opacity: Number(e.target.value) })), style: { flex: 1, marginLeft: 12 } }), (0, jsx_runtime_1.jsxs)("span", { style: { width: 40, textAlign: 'right', color: hudSettings.darkMode ? '#b3b3b3' : '#888', fontSize: 15 }, children: [Math.round(hudSettings.opacity * 100), "%"] })] }), (0, jsx_runtime_1.jsx)("button", { onClick: handleReset, style: {

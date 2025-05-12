@@ -22,6 +22,15 @@ const defaultHudSettings = {
   alwaysOnTop: true,
 };
 
+const defaultViewMode = 'both'; // 'local', 'google', or 'both'
+
+function getViewMode() {
+  return localStorage.getItem('viewMode') || defaultViewMode;
+}
+function setViewMode(mode: string) {
+  localStorage.setItem('viewMode', mode);
+}
+
 type HudSettings = typeof defaultHudSettings;
 
 const getHudSettings = () => {
@@ -59,6 +68,13 @@ const App: React.FC = () => {
   const [autoUpdate, setAutoUpdate] = useState(true);
   const [checking, setChecking] = useState(false);
 
+  // View Mode state
+  const [viewMode, setViewModeState] = useState(getViewMode());
+  const handleViewModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setViewModeState(e.target.value);
+    setViewMode(e.target.value);
+  };
+
   // IPC helpers
   const ipc = (window as any).require ? (window as any).require('electron').ipcRenderer : null;
 
@@ -75,6 +91,45 @@ const App: React.FC = () => {
   };
   const handleDeleteArchived = (id: string) => {
     if (ipc) ipc.invoke('delete-archived-task', id).then(fetchArchivedTasks);
+  };
+
+  // Task Lists state
+  const [taskLists, setTaskLists] = useState<{ id: string, name: string }[]>([]);
+  const [activeListId, setActiveListId] = useState<string>('');
+  const [newListName, setNewListName] = useState('');
+  const [renamingListId, setRenamingListId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  const fetchTaskLists = useCallback(() => {
+    if (ipc) {
+      ipc.invoke('get-task-lists').then(setTaskLists);
+      ipc.invoke('get-active-task-list-id').then(setActiveListId);
+    }
+  }, [ipc]);
+  useEffect(() => { if (selected === 'tasks') fetchTaskLists(); }, [selected, fetchTaskLists]);
+
+  const handleSwitchList = (id: string) => {
+    if (ipc) ipc.invoke('set-active-task-list', id).then(fetchTaskLists);
+  };
+  const handleCreateList = () => {
+    if (ipc && newListName.trim()) {
+      ipc.invoke('create-task-list', newListName.trim()).then(() => {
+        setNewListName('');
+        fetchTaskLists();
+      });
+    }
+  };
+  const handleRenameList = (id: string) => {
+    if (ipc && renameValue.trim()) {
+      ipc.invoke('rename-task-list', id, renameValue.trim()).then(() => {
+        setRenamingListId(null);
+        setRenameValue('');
+        fetchTaskLists();
+      });
+    }
+  };
+  const handleDeleteList = (id: string) => {
+    if (ipc) ipc.invoke('delete-task-list', id).then(fetchTaskLists);
   };
 
   // Apply instantly on change
@@ -200,11 +255,63 @@ const App: React.FC = () => {
         minHeight: '100vh',
         boxSizing: 'border-box',
       }}>
+        {/* View Mode Selector - always visible at top */}
+        <div style={{ marginBottom: 32, marginTop: 8 }}>
+          <label style={{ fontWeight: 600, fontSize: 17, marginRight: 12 }}>View Mode:</label>
+          <select value={viewMode} onChange={handleViewModeChange} style={{ fontSize: 16, padding: '4px 12px', borderRadius: 6 }}>
+            <option value="local">Local Tasks</option>
+            <option value="google">Google Calendar</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
         {selected === 'tasks' && (
           <>
-            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Tasks</h2>
-            <TaskForm onTaskAdded={handleTaskAdded} />
-            <TaskList fetchTasksRef={fetchTasksRef} />
+            {/* Local Tasks Section */}
+            {(viewMode === 'local' || viewMode === 'both') && (
+              <>
+                <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Tasks</h2>
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ fontWeight: 700, fontSize: 17, marginRight: 10, color: hudSettings.darkMode ? '#fff' : '#222' }}>Active Task List:</label>
+                  <select value={activeListId} onChange={e => handleSwitchList(e.target.value)} style={{ fontSize: 16, padding: '5px 12px', borderRadius: 6, marginRight: 10, background: hudSettings.darkMode ? '#23272f' : '#fff', color: hudSettings.darkMode ? '#fff' : '#222', border: '2px solid #4fa3e3', fontWeight: 700, boxShadow: '0 2px 8px rgba(79,163,227,0.10)' }}>
+                    {taskLists.map(list => (
+                      <option key={list.id} value={list.id} style={{ background: list.id === activeListId ? '#4fa3e3' : (hudSettings.darkMode ? '#23272f' : '#fff'), color: list.id === activeListId ? '#fff' : (hudSettings.darkMode ? '#f3f3f3' : '#222'), fontWeight: list.id === activeListId ? 700 : 500 }}>
+                        {list.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input type="text" value={newListName} onChange={e => setNewListName(e.target.value)} placeholder="New list name" style={{ fontSize: 15, padding: '4px 10px', borderRadius: 6, marginRight: 6, background: hudSettings.darkMode ? '#23272f' : '#fff', color: hudSettings.darkMode ? '#fff' : '#222', border: '1px solid #aaa' }} />
+                  <button onClick={handleCreateList} style={{ fontSize: 15, padding: '4px 12px', borderRadius: 6, background: '#4fa3e3', color: '#fff', border: 'none', fontWeight: 700, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>+ New</button>
+                </div>
+                {/* List Management (Rename/Delete) */}
+                <div style={{ marginBottom: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {taskLists.map(list => (
+                    <span key={list.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: list.id === activeListId ? '#4fa3e3' : (hudSettings.darkMode ? '#23272f' : '#f6f7fb'), borderRadius: 6, padding: '2px 12px', color: list.id === activeListId ? '#fff' : (hudSettings.darkMode ? '#f3f3f3' : '#222'), fontWeight: list.id === activeListId ? 700 : 500, border: list.id === activeListId ? '2px solid #4fa3e3' : '1px solid #ccc', boxShadow: list.id === activeListId ? '0 2px 8px rgba(79,163,227,0.10)' : 'none' }}>
+                      {renamingListId === list.id ? (
+                        <>
+                          <input value={renameValue} onChange={e => setRenameValue(e.target.value)} style={{ fontSize: 14, padding: '2px 6px', borderRadius: 4, background: hudSettings.darkMode ? '#23272f' : '#fff', color: hudSettings.darkMode ? '#fff' : '#222', border: '1px solid #aaa' }} />
+                          <button onClick={() => handleRenameList(list.id)} style={{ fontSize: 13, marginLeft: 2, color: '#4fa3e3', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>Save</button>
+                          <button onClick={() => setRenamingListId(null)} style={{ fontSize: 13, marginLeft: 2, color: '#e34f4f', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <span>{list.name}</span>
+                          <button onClick={() => { setRenamingListId(list.id); setRenameValue(list.name); }} style={{ fontSize: 13, marginLeft: 2, color: list.id === activeListId ? '#fff' : '#4fa3e3', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>Rename</button>
+                          {taskLists.length > 1 && <button onClick={() => handleDeleteList(list.id)} style={{ fontSize: 13, marginLeft: 2, color: '#e34f4f', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>}
+                        </>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                <TaskForm onTaskAdded={handleTaskAdded} />
+                <TaskList fetchTasksRef={fetchTasksRef} />
+              </>
+            )}
+            {/* Google Calendar Section (placeholder) */}
+            {(viewMode === 'google' || viewMode === 'both') && (
+              <div style={{ marginTop: 32, color: '#4fa3e3', fontSize: 18 }}>
+                <b>Google Calendar events will appear here (integration coming soon).</b>
+              </div>
+            )}
           </>
         )}
         {selected === 'hud' && (

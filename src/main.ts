@@ -2,10 +2,11 @@ console.log("Main process started")
 
 import { app, BrowserWindow, screen, ipcMain, Menu, Tray, nativeImage, MenuItemConstructorOptions, dialog } from 'electron';
 import * as path from 'path';
-import { getLocalTasks, addLocalTask, updateLocalTask, deleteLocalTask, getArchivedTasks, restoreArchivedTask, deleteArchivedTask } from './main/tasks/local';
+import { getLocalTasks, addLocalTask, updateLocalTask, deleteLocalTask, getArchivedTasks, restoreArchivedTask, deleteArchivedTask, getTaskLists, getActiveTaskListId, setActiveTaskList, createTaskList, renameTaskList, deleteTaskList } from './main/tasks/local';
 import { sharedMenu } from './shared/menu';
 import Store from 'electron-store';
 import { autoUpdater } from 'electron-updater';
+import { authenticateWithGoogleCalendar, fetchGoogleCalendarEvents } from './main/calendar/google';
 
 class MainProcess {
   private mainWindow: BrowserWindow | null = null;
@@ -119,6 +120,40 @@ class MainProcess {
       ipcMain.handle('delete-archived-task', (_event, id: string) => {
         deleteArchivedTask(id);
         return true;
+      });
+      // IPC for task lists
+      ipcMain.handle('get-task-lists', () => getTaskLists());
+      ipcMain.handle('get-active-task-list-id', () => getActiveTaskListId());
+      ipcMain.handle('set-active-task-list', (_event, id: string) => { setActiveTaskList(id); return true; });
+      ipcMain.handle('create-task-list', (_event, name: string) => createTaskList(name));
+      ipcMain.handle('rename-task-list', (_event, id: string, name: string) => { renameTaskList(id, name); return true; });
+      ipcMain.handle('delete-task-list', (_event, id: string) => { deleteTaskList(id); return true; });
+      // IPC for Google Calendar
+      ipcMain.handle('google-calendar-sign-in', async () => {
+        try {
+          await authenticateWithGoogleCalendar();
+          return { success: true };
+        } catch (e) {
+          return { success: false, error: (e as any)?.message || String(e) };
+        }
+      });
+      ipcMain.handle('google-calendar-sign-out', () => {
+        const store = new Store();
+        store.delete('google_tokens');
+        return { success: true };
+      });
+      ipcMain.handle('google-calendar-status', () => {
+        const store = new Store();
+        const tokens = store.get('google_tokens');
+        return { signedIn: !!tokens };
+      });
+      ipcMain.handle('google-calendar-events', async () => {
+        try {
+          const events = await fetchGoogleCalendarEvents();
+          return { success: true, events };
+        } catch (e) {
+          return { success: false, error: (e as any)?.message || String(e) };
+        }
       });
       // TODO: Add system tray integration here
     });

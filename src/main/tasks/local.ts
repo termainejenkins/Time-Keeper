@@ -2,8 +2,36 @@ import Store from 'electron-store';
 import { LocalTask } from '../../shared/types/task';
 import { v4 as uuidv4 } from 'uuid';
 
-const store: any = new Store<{ local_tasks: LocalTask[] }>();
+// Store structure: { lists: { [id]: { id, name, tasks: LocalTask[] } }, activeListId: string }
+const store: any = new Store<{ lists: any, activeListId: string }>();
 const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function getListsObj() {
+  let lists = store.get('lists');
+  if (!lists) {
+    // Create default list if none exists
+    const defaultId = uuidv4();
+    lists = { [defaultId]: { id: defaultId, name: 'Default', tasks: [] } };
+    store.set('lists', lists);
+    store.set('activeListId', defaultId);
+  }
+  return lists;
+}
+function getActiveListId() {
+  let id = store.get('activeListId');
+  if (!id) {
+    const lists = getListsObj();
+    id = Object.keys(lists)[0];
+    store.set('activeListId', id);
+  }
+  return id;
+}
+function setActiveListId(id: string) {
+  store.set('activeListId', id);
+}
+function saveLists(lists: any) {
+  store.set('lists', lists);
+}
 
 function processTaskExpiration(tasks: LocalTask[]): LocalTask[] {
   const now = Date.now();
@@ -25,52 +53,101 @@ function processTaskExpiration(tasks: LocalTask[]): LocalTask[] {
   });
 }
 
+export function getTaskLists() {
+  const lists = getListsObj();
+  return Object.values(lists).map((l: any) => ({ id: l.id, name: l.name }));
+}
+export function getActiveTaskListId() {
+  return getActiveListId();
+}
+export function setActiveTaskList(id: string) {
+  setActiveListId(id);
+}
+export function createTaskList(name: string) {
+  const lists = getListsObj();
+  const id = uuidv4();
+  lists[id] = { id, name, tasks: [] };
+  saveLists(lists);
+  setActiveListId(id);
+  return { id, name };
+}
+export function renameTaskList(id: string, name: string) {
+  const lists = getListsObj();
+  if (lists[id]) lists[id].name = name;
+  saveLists(lists);
+}
+export function deleteTaskList(id: string) {
+  const lists = getListsObj();
+  delete lists[id];
+  // If deleted active, switch to another
+  let activeId = getActiveListId();
+  if (activeId === id) {
+    const keys = Object.keys(lists);
+    setActiveListId(keys.length ? keys[0] : '');
+  }
+  saveLists(lists);
+}
+
+function getActiveList() {
+  const lists = getListsObj();
+  const id = getActiveListId();
+  return lists[id] || { id, name: 'Unknown', tasks: [] };
+}
+function saveActiveList(list: any) {
+  const lists = getListsObj();
+  lists[list.id] = list;
+  saveLists(lists);
+}
+
 export function getLocalTasks(): LocalTask[] {
-  let tasks: LocalTask[] = store.get('local_tasks', []);
+  let list = getActiveList();
   // Process expiration/archiving
-  tasks = processTaskExpiration(tasks);
-  // Save any changes
-  store.set('local_tasks', tasks);
-  // Return only active (not archived) tasks
-  return tasks.filter(task => !task.archived);
+  list.tasks = processTaskExpiration(list.tasks);
+  saveActiveList(list);
+  return list.tasks.filter((task: LocalTask) => !task.archived);
 }
 
 export function getArchivedTasks(): LocalTask[] {
-  const tasks: LocalTask[] = store.get('local_tasks', []);
-  return tasks.filter(task => task.archived);
+  let list = getActiveList();
+  return list.tasks.filter((task: LocalTask) => task.archived);
 }
 
 export function addLocalTask(task: Omit<LocalTask, 'id' | 'completed'>): LocalTask {
+  let list = getActiveList();
   const newTask: LocalTask = {
     ...task,
     id: uuidv4(),
     completed: false,
   };
-  const tasks = getLocalTasks();
-  store.set('local_tasks', [...tasks, newTask]);
+  list.tasks.push(newTask);
+  saveActiveList(list);
   return newTask;
 }
 
 export function updateLocalTask(updatedTask: LocalTask): void {
-  const tasks = store.get('local_tasks', []).map((task: LocalTask) =>
+  let list = getActiveList();
+  list.tasks = list.tasks.map((task: LocalTask) =>
     task.id === updatedTask.id ? updatedTask : task
   );
-  store.set('local_tasks', tasks);
+  saveActiveList(list);
 }
 
 export function deleteLocalTask(id: string): void {
-  const tasks = store.get('local_tasks', []).filter((task: LocalTask) => task.id !== id);
-  store.set('local_tasks', tasks);
+  let list = getActiveList();
+  list.tasks = list.tasks.filter((task: LocalTask) => task.id !== id);
+  saveActiveList(list);
 }
 
 export function restoreArchivedTask(id: string): void {
-  const tasks = store.get('local_tasks', []).map((task: LocalTask) =>
+  let list = getActiveList();
+  list.tasks = list.tasks.map((task: LocalTask) =>
     task.id === id ? { ...task, archived: false, expiredAt: undefined } : task
   );
-  store.set('local_tasks', tasks);
+  saveActiveList(list);
 }
 
 export function deleteArchivedTask(id: string): void {
-  const tasks = store.get('local_tasks', []).filter((task: LocalTask) => task.id !== id);
-  store.set('local_tasks', tasks);
+  let list = getActiveList();
+  list.tasks = list.tasks.filter((task: LocalTask) => task.id !== id);
+  saveActiveList(list);
 } 
