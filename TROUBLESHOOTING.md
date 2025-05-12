@@ -55,4 +55,18 @@ This ensures Electron can always find your JS bundle and assets.
   - Monitor the project README and changelog for updates on Google Calendar support.
 - **Note:** Full Google Calendar integration is a future milestone.
 
+## Task Update UI Flickering Issue
+- **Problem:** When updating a task, the UI would go blank momentarily before showing the updated task.
+- **Cause:** The task update flow was waiting for the IPC response before updating the UI, causing a visual delay.
+- **Solution:** Implemented optimistic updates:
+  - UI updates immediately with the new task data
+  - IPC calls happen in the background
+  - Error handling ensures data consistency if the update fails
+- **Technical Details:**
+  - TaskForm now calls `onTaskAdded` before making IPC calls
+  - TaskList updates local state immediately
+  - Edit mode exits smoothly before any async operations
+  - Error handling refreshes the list only if needed
+- **Note:** This change improves the user experience by making updates appear instant while maintaining data consistency.
+
 _Add new issues and solutions here as they are discovered!_ 

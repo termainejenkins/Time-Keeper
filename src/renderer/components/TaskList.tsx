@@ -91,20 +91,30 @@ const TaskList: React.FC<TaskListProps> = ({ fetchTasksRef, darkMode = false }) 
 
   const handleTaskUpdated = (updatedTask: LocalTask) => {
     console.log('Updating task:', updatedTask);
-    // First exit edit mode to prevent UI flicker
+    
+    // Exit edit mode immediately
     setEditingTaskId(null);
     
     // Update local state immediately for smooth UI
-    setTasks(prevTasks => prevTasks.map(task => 
-      task.id === updatedTask.id ? updatedTask : task
-    ));
-
-    // Send update to main process
-    ipcRenderer.invoke('tasks:update', updatedTask).catch((error: Error) => {
-      console.error('Error updating task:', error);
-      // Only fetch tasks if there was an error to ensure sync
-      fetchTasks();
+    setTasks(prevTasks => {
+      // If this is a new task (no id), add it to the list
+      if (!updatedTask.id) {
+        return [...prevTasks, updatedTask];
+      }
+      // Otherwise update the existing task
+      return prevTasks.map(task => 
+        task.id === updatedTask.id ? updatedTask : task
+      );
     });
+
+    // Send update to main process in the background
+    if (updatedTask.id) {
+      ipcRenderer.invoke('tasks:update', updatedTask).catch((error: Error) => {
+        console.error('Error updating task:', error);
+        // Only fetch tasks if there was an error to ensure sync
+        fetchTasks();
+      });
+    }
   };
 
   /**

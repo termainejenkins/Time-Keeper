@@ -60,15 +60,26 @@ const TaskForm = ({ onTaskAdded, initialTask, onCancel }) => {
             repeat,
             repeatSettings,
         };
-        let updatedTask;
-        if (initialTask) {
-            updatedTask = await ipcRenderer.invoke('tasks:update', {
-                ...initialTask,
-                ...taskData
-            });
+        // Create the updated task object
+        const updatedTask = initialTask
+            ? { ...initialTask, ...taskData }
+            : { ...taskData, id: '', completed: false };
+        // Call onTaskAdded immediately with the optimistic update
+        if (onTaskAdded)
+            onTaskAdded(updatedTask);
+        // Then send to main process
+        try {
+            if (initialTask) {
+                await ipcRenderer.invoke('tasks:update', updatedTask);
+            }
+            else {
+                const newTask = await ipcRenderer.invoke('tasks:add', taskData);
+                if (onTaskAdded)
+                    onTaskAdded(newTask);
+            }
         }
-        else {
-            updatedTask = await ipcRenderer.invoke('tasks:add', taskData);
+        catch (error) {
+            console.error('Error saving task:', error);
         }
         if (!initialTask) {
             setTitle('');
@@ -79,8 +90,6 @@ const TaskForm = ({ onTaskAdded, initialTask, onCancel }) => {
             setCustomInterval(2);
             setSelectedWeekdays([]);
         }
-        if (onTaskAdded)
-            onTaskAdded(updatedTask);
     };
     const handleWeekdayToggle = (day) => {
         setSelectedWeekdays(prev => prev.includes(day)

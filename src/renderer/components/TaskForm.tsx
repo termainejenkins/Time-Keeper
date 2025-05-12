@@ -71,14 +71,24 @@ const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded, initialTask, onCancel 
       repeatSettings,
     };
 
-    let updatedTask: LocalTask;
-    if (initialTask) {
-      updatedTask = await ipcRenderer.invoke('tasks:update', {
-        ...initialTask,
-        ...taskData
-      });
-    } else {
-      updatedTask = await ipcRenderer.invoke('tasks:add', taskData);
+    // Create the updated task object
+    const updatedTask: LocalTask = initialTask 
+      ? { ...initialTask, ...taskData }
+      : { ...taskData, id: '', completed: false } as LocalTask;
+
+    // Call onTaskAdded immediately with the optimistic update
+    if (onTaskAdded) onTaskAdded(updatedTask);
+
+    // Then send to main process
+    try {
+      if (initialTask) {
+        await ipcRenderer.invoke('tasks:update', updatedTask);
+      } else {
+        const newTask = await ipcRenderer.invoke('tasks:add', taskData);
+        if (onTaskAdded) onTaskAdded(newTask);
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
     }
 
     if (!initialTask) {
@@ -90,8 +100,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded, initialTask, onCancel 
       setCustomInterval(2);
       setSelectedWeekdays([]);
     }
-    
-    if (onTaskAdded) onTaskAdded(updatedTask);
   };
 
   const handleWeekdayToggle = (day: number) => {

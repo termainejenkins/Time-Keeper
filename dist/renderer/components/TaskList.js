@@ -78,16 +78,25 @@ const TaskList = ({ fetchTasksRef, darkMode = false }) => {
     };
     const handleTaskUpdated = (updatedTask) => {
         console.log('Updating task:', updatedTask);
-        setTasks(prevTasks => prevTasks.map(task => task.id === updatedTask.id ? updatedTask : task));
-        ipcRenderer.invoke('tasks:update', updatedTask).then(() => {
-            console.log('Task update successful');
-            setEditingTaskId(null);
-            fetchTasks();
-        }).catch((error) => {
-            console.error('Error updating task:', error);
-            fetchTasks();
-            setEditingTaskId(null);
+        // Exit edit mode immediately
+        setEditingTaskId(null);
+        // Update local state immediately for smooth UI
+        setTasks(prevTasks => {
+            // If this is a new task (no id), add it to the list
+            if (!updatedTask.id) {
+                return [...prevTasks, updatedTask];
+            }
+            // Otherwise update the existing task
+            return prevTasks.map(task => task.id === updatedTask.id ? updatedTask : task);
         });
+        // Send update to main process in the background
+        if (updatedTask.id) {
+            ipcRenderer.invoke('tasks:update', updatedTask).catch((error) => {
+                console.error('Error updating task:', error);
+                // Only fetch tasks if there was an error to ensure sync
+                fetchTasks();
+            });
+        }
     };
     /**
      * Renders a single task item, either in edit mode or display mode
