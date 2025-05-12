@@ -13,6 +13,7 @@ const sections = [
     { key: 'tasks', label: 'Tasks' },
     { key: 'hud', label: 'HUD Options' },
     { key: 'updates', label: 'Updates' },
+    { key: 'archive', label: 'Archive' },
     { key: 'about', label: 'About' },
 ];
 const defaultHudSettings = {
@@ -58,6 +59,24 @@ const App = () => {
     const [checking, setChecking] = (0, react_1.useState)(false);
     // IPC helpers
     const ipc = window.require ? window.require('electron').ipcRenderer : null;
+    // Archive state
+    const [archivedTasks, setArchivedTasks] = (0, react_1.useState)([]);
+    const fetchArchivedTasks = (0, react_1.useCallback)(() => {
+        if (ipc)
+            ipc.invoke('get-archived-tasks').then(setArchivedTasks);
+    }, [ipc]);
+    (0, react_1.useEffect)(() => {
+        if (selected === 'archive')
+            fetchArchivedTasks();
+    }, [selected, fetchArchivedTasks]);
+    const handleRestoreArchived = (id) => {
+        if (ipc)
+            ipc.invoke('restore-archived-task', id).then(fetchArchivedTasks);
+    };
+    const handleDeleteArchived = (id) => {
+        if (ipc)
+            ipc.invoke('delete-archived-task', id).then(fetchArchivedTasks);
+    };
     // Apply instantly on change
     (0, react_1.useEffect)(() => {
         saveHudSettings(hudSettings);
@@ -193,7 +212,16 @@ const App = () => {
                                     transition: 'background 0.2s, color 0.2s',
                                 }, children: [(0, jsx_runtime_1.jsx)("span", { style: { fontWeight: 700, fontSize: 20, marginBottom: 6, color: hudSettings.darkMode ? '#b3d1f7' : '#cce6ff' }, children: "HUD Preview" }), (0, jsx_runtime_1.jsxs)("span", { style: { fontSize: 16, color: hudSettings.darkMode ? '#b3d1f7' : '#cce6ff' }, children: ["Current Task: ", (0, jsx_runtime_1.jsx)("b", { style: { color: hudSettings.darkMode ? '#fff' : '#fff' }, children: "Example Task" })] }), hudSettings.showCurrentTime && ((0, jsx_runtime_1.jsx)("span", { style: { fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }, children: "12:34:56 PM" })), (0, jsx_runtime_1.jsx)("span", { style: { fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }, children: "(00:12:34 left)" })] })] })), selected === 'updates' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "Updates" }), (0, jsx_runtime_1.jsxs)("div", { style: { color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 500 }, children: [(0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12 }, children: [(0, jsx_runtime_1.jsx)("b", { children: "Current Version:" }), " ", appVersion] }), (0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12 }, children: [(0, jsx_runtime_1.jsx)("b", { children: "Update Status:" }), " ", checking ? 'Checking...' : updateStatus.charAt(0).toUpperCase() + updateStatus.slice(1)] }), updateStatus === 'available' && updateInfo && ((0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12, color: '#4fa3e3' }, children: [(0, jsx_runtime_1.jsx)("b", { children: "New version available:" }), " ", updateInfo.version || ''] })), updateStatus === 'downloading' && updateInfo && ((0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12, color: '#4fa3e3' }, children: [(0, jsx_runtime_1.jsx)("b", { children: "Downloading update..." }), " ", updateInfo.percent ? `${Math.round(updateInfo.percent)}%` : ''] })), updateStatus === 'downloaded' && updateInfo && ((0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12, color: '#4fa3e3' }, children: [(0, jsx_runtime_1.jsx)("b", { children: "Update downloaded!" }), " Restart the app to apply the update."] })), updateStatus === 'error' && updateInfo && ((0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12, color: 'red' }, children: [(0, jsx_runtime_1.jsx)("b", { children: "Update error:" }), " ", updateInfo.message || String(updateInfo)] })), updateInfo && updateInfo.releaseNotes && ((0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12 }, children: [(0, jsx_runtime_1.jsx)("b", { children: "Release Notes:" }), (0, jsx_runtime_1.jsx)("div", { style: { background: '#2222', padding: 10, borderRadius: 6, marginTop: 4, maxHeight: 120, overflowY: 'auto', fontSize: 15 }, dangerouslySetInnerHTML: { __html: updateInfo.releaseNotes } })] })), (0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 12 }, children: [(0, jsx_runtime_1.jsx)("button", { onClick: handleManualCheck, disabled: checking, style: {
                                                     background: '#4fa3e3', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontSize: 15, cursor: 'pointer', fontWeight: 500, marginRight: 16
-                                                }, children: "Check for Updates" }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 15 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: autoUpdate, onChange: handleToggleAutoUpdate }), "Enable Auto-Update"] })] })] })] })), selected === 'about' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "About" }), (0, jsx_runtime_1.jsxs)("div", { style: { color: hudSettings.darkMode ? '#b3b3b3' : '#666', fontSize: 16, marginTop: 24 }, children: [(0, jsx_runtime_1.jsx)("p", { children: "Time Keeper v1.0" }), (0, jsx_runtime_1.jsx)("p", { children: "Modern minimalist time/task HUD for desktop." }), (0, jsx_runtime_1.jsxs)("p", { style: { fontSize: 14, color: hudSettings.darkMode ? '#888' : '#aaa', marginTop: 16 }, children: ["\u00A9 ", new Date().getFullYear(), " Time Keeper"] })] })] }))] })] }));
+                                                }, children: "Check for Updates" }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 15 }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: autoUpdate, onChange: handleToggleAutoUpdate }), "Enable Auto-Update"] })] })] })] })), selected === 'archive' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "Archive" }), (0, jsx_runtime_1.jsxs)("div", { style: { color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 600 }, children: [archivedTasks.length === 0 && (0, jsx_runtime_1.jsx)("div", { children: "No archived tasks." }), archivedTasks.map(task => ((0, jsx_runtime_1.jsxs)("div", { style: {
+                                            background: hudSettings.darkMode ? '#23272f' : '#f6f7fb',
+                                            border: '1px solid #ccc',
+                                            borderRadius: 8,
+                                            padding: 16,
+                                            marginBottom: 14,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 6
+                                        }, children: [(0, jsx_runtime_1.jsx)("div", { children: (0, jsx_runtime_1.jsx)("b", { children: task.title }) }), (0, jsx_runtime_1.jsxs)("div", { style: { fontSize: 14, color: '#888' }, children: ["Ended: ", new Date(task.end).toLocaleString()] }), task.expiredAt && (0, jsx_runtime_1.jsxs)("div", { style: { fontSize: 13, color: '#aaa' }, children: ["Archived: ", new Date(task.expiredAt + 24 * 60 * 60 * 1000).toLocaleString()] }), (0, jsx_runtime_1.jsxs)("div", { style: { display: 'flex', gap: 10, marginTop: 6 }, children: [(0, jsx_runtime_1.jsx)("button", { onClick: () => handleRestoreArchived(task.id), style: { background: '#4fa3e3', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 14, cursor: 'pointer', fontWeight: 500 }, children: "Restore" }), (0, jsx_runtime_1.jsx)("button", { onClick: () => handleDeleteArchived(task.id), style: { background: '#e34f4f', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 14, cursor: 'pointer', fontWeight: 500 }, children: "Delete" })] })] }, task.id)))] })] })), selected === 'about' && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("h2", { style: { fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }, children: "About" }), (0, jsx_runtime_1.jsxs)("div", { style: { color: hudSettings.darkMode ? '#b3b3b3' : '#666', fontSize: 16, marginTop: 24 }, children: [(0, jsx_runtime_1.jsx)("p", { children: "Time Keeper v1.0" }), (0, jsx_runtime_1.jsx)("p", { children: "Modern minimalist time/task HUD for desktop." }), (0, jsx_runtime_1.jsxs)("p", { style: { fontSize: 14, color: hudSettings.darkMode ? '#888' : '#aaa', marginTop: 16 }, children: ["\u00A9 ", new Date().getFullYear(), " Time Keeper"] })] })] }))] })] }));
 };
 const container = document.getElementById('root');
 if (container) {

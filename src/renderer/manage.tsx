@@ -9,6 +9,7 @@ const sections = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'hud', label: 'HUD Options' },
   { key: 'updates', label: 'Updates' },
+  { key: 'archive', label: 'Archive' },
   { key: 'about', label: 'About' },
 ];
 
@@ -60,6 +61,21 @@ const App: React.FC = () => {
 
   // IPC helpers
   const ipc = (window as any).require ? (window as any).require('electron').ipcRenderer : null;
+
+  // Archive state
+  const [archivedTasks, setArchivedTasks] = useState<any[]>([]);
+  const fetchArchivedTasks = useCallback(() => {
+    if (ipc) ipc.invoke('get-archived-tasks').then(setArchivedTasks);
+  }, [ipc]);
+  useEffect(() => {
+    if (selected === 'archive') fetchArchivedTasks();
+  }, [selected, fetchArchivedTasks]);
+  const handleRestoreArchived = (id: string) => {
+    if (ipc) ipc.invoke('restore-archived-task', id).then(fetchArchivedTasks);
+  };
+  const handleDeleteArchived = (id: string) => {
+    if (ipc) ipc.invoke('delete-archived-task', id).then(fetchArchivedTasks);
+  };
 
   // Apply instantly on change
   useEffect(() => {
@@ -337,6 +353,34 @@ const App: React.FC = () => {
                   Enable Auto-Update
                 </label>
               </div>
+            </div>
+          </>
+        )}
+        {selected === 'archive' && (
+          <>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Archive</h2>
+            <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 600 }}>
+              {archivedTasks.length === 0 && <div>No archived tasks.</div>}
+              {archivedTasks.map(task => (
+                <div key={task.id} style={{
+                  background: hudSettings.darkMode ? '#23272f' : '#f6f7fb',
+                  border: '1px solid #ccc',
+                  borderRadius: 8,
+                  padding: 16,
+                  marginBottom: 14,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6
+                }}>
+                  <div><b>{task.title}</b></div>
+                  <div style={{ fontSize: 14, color: '#888' }}>Ended: {new Date(task.end).toLocaleString()}</div>
+                  {task.expiredAt && <div style={{ fontSize: 13, color: '#aaa' }}>Archived: {new Date(task.expiredAt + 24*60*60*1000).toLocaleString()}</div>}
+                  <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                    <button onClick={() => handleRestoreArchived(task.id)} style={{ background: '#4fa3e3', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 14, cursor: 'pointer', fontWeight: 500 }}>Restore</button>
+                    <button onClick={() => handleDeleteArchived(task.id)} style={{ background: '#e34f4f', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 14, cursor: 'pointer', fontWeight: 500 }}>Delete</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}

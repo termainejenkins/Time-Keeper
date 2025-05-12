@@ -143,6 +143,16 @@ class MainProcess {
                 }
                 return enabled;
             });
+            // IPC for archived tasks
+            electron_1.ipcMain.handle('get-archived-tasks', () => (0, local_1.getArchivedTasks)());
+            electron_1.ipcMain.handle('restore-archived-task', (_event, id) => {
+                (0, local_1.restoreArchivedTask)(id);
+                return true;
+            });
+            electron_1.ipcMain.handle('delete-archived-task', (_event, id) => {
+                (0, local_1.deleteArchivedTask)(id);
+                return true;
+            });
             // TODO: Add system tray integration here
         });
         electron_1.app.on('window-all-closed', () => {

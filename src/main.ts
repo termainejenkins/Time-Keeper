@@ -2,7 +2,7 @@ console.log("Main process started")
 
 import { app, BrowserWindow, screen, ipcMain, Menu, Tray, nativeImage, MenuItemConstructorOptions, dialog } from 'electron';
 import * as path from 'path';
-import { getLocalTasks, addLocalTask, updateLocalTask, deleteLocalTask } from './main/tasks/local';
+import { getLocalTasks, addLocalTask, updateLocalTask, deleteLocalTask, getArchivedTasks, restoreArchivedTask, deleteArchivedTask } from './main/tasks/local';
 import { sharedMenu } from './shared/menu';
 import Store from 'electron-store';
 import { autoUpdater } from 'electron-updater';
@@ -109,6 +109,16 @@ class MainProcess {
           autoUpdater.checkForUpdatesAndNotify();
         }
         return enabled;
+      });
+      // IPC for archived tasks
+      ipcMain.handle('get-archived-tasks', () => getArchivedTasks());
+      ipcMain.handle('restore-archived-task', (_event, id: string) => {
+        restoreArchivedTask(id);
+        return true;
+      });
+      ipcMain.handle('delete-archived-task', (_event, id: string) => {
+        deleteArchivedTask(id);
+        return true;
       });
       // TODO: Add system tray integration here
     });
