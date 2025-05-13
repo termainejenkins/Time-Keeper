@@ -26,6 +26,9 @@ const HUD = () => {
     const [titleScale, setTitleScale] = (0, react_1.useState)(1);
     const titleRef = (0, react_1.useRef)(null);
     const [opacity, setOpacity] = (0, react_1.useState)(0.85);
+    const containerRef = (0, react_1.useRef)(null);
+    const contentRef = (0, react_1.useRef)(null);
+    const [containerHeight, setContainerHeight] = (0, react_1.useState)(0);
     // Calculate border color based on time left
     const calculateBorderColor = (timeLeft) => {
         if (!dynamicBorderColor || timeLeft === null)
@@ -432,14 +435,28 @@ const HUD = () => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [currentTask]);
-    return ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.5 }, style: {
+    // Add ResizeObserver to handle dynamic content sizing
+    (0, react_1.useEffect)(() => {
+        if (!contentRef.current)
+            return;
+        const resizeObserver = new ResizeObserver(entries => {
+            for (const entry of entries) {
+                const height = entry.contentRect.height;
+                setContainerHeight(height);
+            }
+        });
+        resizeObserver.observe(contentRef.current);
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, []);
+    return ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { ref: containerRef, initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.5 }, style: {
             position: 'relative',
             border: showBorder ? `2px solid ${borderColor}` : 'none',
             borderRadius: 8,
             padding: '8px',
             transition: 'border-color 0.3s ease, opacity 0.3s ease',
             overflow: 'visible',
-            minHeight: 'fit-content',
             display: 'flex',
             flexDirection: 'column',
             background: 'transparent',
@@ -447,7 +464,9 @@ const HUD = () => {
             boxSizing: 'border-box',
             opacity: opacity,
             width: '100%',
-            maxWidth: '100%'
+            maxWidth: '100%',
+            transform: 'translateZ(0)',
+            willChange: 'transform'
         }, children: [(0, jsx_runtime_1.jsxs)("div", { style: {
                     position: 'absolute',
                     top: 0,
@@ -507,21 +526,24 @@ const HUD = () => {
                                     cursor: 'pointer',
                                     color: '#c00',
                                     fontSize: 15,
-                                }, onClick: () => handleMenuClick('quit'), children: "Quit" })] }))] }), (0, jsx_runtime_1.jsxs)("div", { className: "hud-container", style: {
+                                }, onClick: () => handleMenuClick('quit'), children: "Quit" })] }))] }), (0, jsx_runtime_1.jsxs)("div", { ref: contentRef, className: "hud-container", style: {
                     pointerEvents: 'none',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 2,
+                    gap: 0,
                     width: '100%',
-                    padding: '2px 0',
+                    padding: 0,
                     minHeight: 'fit-content',
-                    overflow: 'visible'
+                    overflow: 'visible',
+                    position: 'relative',
+                    transform: 'translateZ(0)',
+                    willChange: 'transform'
                 }, children: [(0, jsx_runtime_1.jsx)("div", { className: "current-task-prominent", style: {
                             fontSize: '1.3em',
                             fontWeight: 700,
                             color: currentTask ? '#4fa3e3' : '#7fa7c7',
                             textShadow: '0 1px 4px rgba(0,0,0,0.10)',
-                            marginBottom: 2,
+                            marginBottom: 0,
                             textAlign: 'center',
                             width: '100%',
                             overflow: 'visible',
@@ -532,7 +554,8 @@ const HUD = () => {
                                         transform: `scale(${titleScale})`,
                                         transformOrigin: 'center',
                                         transition: 'transform 0.2s ease-out',
-                                        maxWidth: '100%'
+                                        maxWidth: '100%',
+                                        overflow: 'visible'
                                     }, children: currentTask.title }), currentTask.repeat && currentTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: {
                                         marginLeft: 8,
                                         color: '#888',
@@ -541,6 +564,14 @@ const HUD = () => {
                                         verticalAlign: 'middle',
                                         lineHeight: 1,
                                         display: 'inline-block',
-                                    }, children: ["[", formatRepeatLabel(currentTask), "]"] }))] })) : ((0, jsx_runtime_1.jsx)("span", { style: { fontStyle: 'italic', color: '#7fa7c7' }, children: "Idle" })) }), (0, jsx_runtime_1.jsx)("div", { className: "current-task-timer", style: { fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 4 }, children: currentTask ? `(${formatTimeHMS(timeLeft)} left)` : '' }), showCurrentTime && ((0, jsx_runtime_1.jsx)("div", { className: "current-time", style: { fontSize: '1em', fontWeight: 500, marginBottom: 2 }, children: currentTime?.toLocaleTimeString() })), nextTask && ((0, jsx_runtime_1.jsxs)("div", { className: "next-event", style: { fontSize: '0.95em', color: '#888', textAlign: 'center', opacity: 0.7, marginTop: 0 }, children: ["Next: ", (0, jsx_runtime_1.jsx)("span", { children: nextTask.title }), nextTask.repeat && nextTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }, children: ["[", formatRepeatLabel(nextTask), "]"] })), (0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#aaa', fontSize: '0.9em' }, children: ["(in ", formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0)), ")"] })] }))] })] }));
+                                    }, children: ["[", formatRepeatLabel(currentTask), "]"] }))] })) : ((0, jsx_runtime_1.jsx)("span", { style: { fontStyle: 'italic', color: '#7fa7c7' }, children: "Idle" })) }), (0, jsx_runtime_1.jsx)("div", { className: "current-task-timer", style: { fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 0 }, children: currentTask ? `(${formatTimeHMS(timeLeft)} left)` : '' }), showCurrentTime && ((0, jsx_runtime_1.jsx)("div", { className: "current-time", style: { fontSize: '1em', fontWeight: 500, marginBottom: 0 }, children: currentTime?.toLocaleTimeString() })), nextTask && ((0, jsx_runtime_1.jsxs)("div", { className: "next-event", style: {
+                            fontSize: '0.95em',
+                            color: '#888',
+                            textAlign: 'center',
+                            opacity: 0.7,
+                            marginTop: 0,
+                            paddingTop: 2,
+                            borderTop: '1px solid rgba(255,255,255,0.1)'
+                        }, children: ["Next: ", (0, jsx_runtime_1.jsx)("span", { children: nextTask.title }), nextTask.repeat && nextTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }, children: ["[", formatRepeatLabel(nextTask), "]"] })), (0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#aaa', fontSize: '0.9em' }, children: ["(in ", formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0)), ")"] })] }))] })] }));
 };
 exports.default = HUD;

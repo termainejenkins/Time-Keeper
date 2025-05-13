@@ -38,6 +38,9 @@ const HUD: React.FC = () => {
   const [titleScale, setTitleScale] = useState(1);
   const titleRef = useRef<HTMLSpanElement>(null);
   const [opacity, setOpacity] = useState(0.85);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState<number>(0);
 
   // Calculate border color based on time left
   const calculateBorderColor = (timeLeft: number | null) => {
@@ -441,8 +444,27 @@ const HUD: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [currentTask]);
 
+  // Add ResizeObserver to handle dynamic content sizing
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        setContainerHeight(height);
+      }
+    });
+
+    resizeObserver.observe(contentRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -450,10 +472,9 @@ const HUD: React.FC = () => {
         position: 'relative',
         border: showBorder ? `2px solid ${borderColor}` : 'none',
         borderRadius: 8,
-        padding: '8px',
+        padding: '12px',
         transition: 'border-color 0.3s ease, opacity 0.3s ease',
-        overflow: 'visible',
-        minHeight: 'fit-content',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         background: 'transparent',
@@ -632,16 +653,21 @@ const HUD: React.FC = () => {
       </div>
 
       {/* Main HUD container with pointerEvents: 'none' */}
-      <div className="hud-container" style={{
-        pointerEvents: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0,
-        width: '100%',
-        padding: 0,
-        minHeight: 'fit-content',
-        overflow: 'visible'
-      }}>
+      <div 
+        ref={contentRef}
+        className="hud-container" 
+        style={{
+          pointerEvents: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0,
+          width: '100%',
+          padding: 0,
+          minHeight: 'fit-content',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+      >
         <div className="current-task-prominent" style={{
           fontSize: '1.3em',
           fontWeight: 700,
@@ -650,8 +676,9 @@ const HUD: React.FC = () => {
           marginBottom: 0,
           textAlign: 'center',
           width: '100%',
-          overflow: 'visible',
-          wordBreak: 'break-word'
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
         }}>
           {currentTask ? (
             <>
@@ -663,8 +690,10 @@ const HUD: React.FC = () => {
                   transform: `scale(${titleScale})`,
                   transformOrigin: 'center',
                   transition: 'transform 0.2s ease-out',
-                  maxWidth: '100%',
-                  overflow: 'visible'
+                  maxWidth: 'calc(100% - 100px)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 {currentTask.title}
@@ -704,7 +733,10 @@ const HUD: React.FC = () => {
             opacity: 0.7, 
             marginTop: 0,
             paddingTop: 2,
-            borderTop: '1px solid rgba(255,255,255,0.1)'
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
           }}>
             Next: <span>{nextTask.title}</span>
             {nextTask.repeat && nextTask.repeat !== 'none' && (
