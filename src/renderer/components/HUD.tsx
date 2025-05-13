@@ -460,7 +460,8 @@ const HUD: React.FC = () => {
         margin: 0,
         boxSizing: 'border-box',
         opacity: opacity,
-        width: '100%'
+        width: '100%',
+        maxWidth: '100%'
       }}
     >
       {/* Hamburger menu button and dropdown as siblings to the HUD container */}
@@ -635,19 +636,22 @@ const HUD: React.FC = () => {
         pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
+        gap: 0,
         width: '100%',
-        padding: '4px 0'
+        padding: 0,
+        minHeight: 'fit-content',
+        overflow: 'visible'
       }}>
         <div className="current-task-prominent" style={{
           fontSize: '1.3em',
           fontWeight: 700,
           color: currentTask ? '#4fa3e3' : '#7fa7c7',
           textShadow: '0 1px 4px rgba(0,0,0,0.10)',
-          marginBottom: 4,
+          marginBottom: 0,
           textAlign: 'center',
           width: '100%',
-          overflow: 'hidden'
+          overflow: 'visible',
+          wordBreak: 'break-word'
         }}>
           {currentTask ? (
             <>
@@ -659,7 +663,8 @@ const HUD: React.FC = () => {
                   transform: `scale(${titleScale})`,
                   transformOrigin: 'center',
                   transition: 'transform 0.2s ease-out',
-                  maxWidth: '100%'
+                  maxWidth: '100%',
+                  overflow: 'visible'
                 }}
               >
                 {currentTask.title}
@@ -682,17 +687,25 @@ const HUD: React.FC = () => {
             <span style={{ fontStyle: 'italic', color: '#7fa7c7' }}>Idle</span>
           )}
         </div>
-        <div className="current-task-timer" style={{ fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 8 }}>
+        <div className="current-task-timer" style={{ fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 0 }}>
           {currentTask ? `(${formatTimeHMS(timeLeft)} left)` : ''}
         </div>
         {showCurrentTime && (
-          <div className="current-time" style={{ fontSize: '1em', fontWeight: 500, marginBottom: 4 }}>
+          <div className="current-time" style={{ fontSize: '1em', fontWeight: 500, marginBottom: 0 }}>
             {currentTime?.toLocaleTimeString()}
           </div>
         )}
         {/* Only show one next task, never a list */}
         {nextTask && (
-          <div className="next-event" style={{ fontSize: '0.95em', color: '#888', textAlign: 'center', opacity: 0.7, marginTop: 2 }}>
+          <div className="next-event" style={{ 
+            fontSize: '0.95em', 
+            color: '#888', 
+            textAlign: 'center', 
+            opacity: 0.7, 
+            marginTop: 0,
+            paddingTop: 2,
+            borderTop: '1px solid rgba(255,255,255,0.1)'
+          }}>
             Next: <span>{nextTask.title}</span>
             {nextTask.repeat && nextTask.repeat !== 'none' && (
               <span style={{ marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>

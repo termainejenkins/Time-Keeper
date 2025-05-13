@@ -446,7 +446,8 @@ const HUD = () => {
             margin: 0,
             boxSizing: 'border-box',
             opacity: opacity,
-            width: '100%'
+            width: '100%',
+            maxWidth: '100%'
         }, children: [(0, jsx_runtime_1.jsxs)("div", { style: {
                     position: 'absolute',
                     top: 0,
@@ -510,18 +511,21 @@ const HUD = () => {
                     pointerEvents: 'none',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 4,
+                    gap: 2,
                     width: '100%',
-                    padding: '4px 0'
+                    padding: '2px 0',
+                    minHeight: 'fit-content',
+                    overflow: 'visible'
                 }, children: [(0, jsx_runtime_1.jsx)("div", { className: "current-task-prominent", style: {
                             fontSize: '1.3em',
                             fontWeight: 700,
                             color: currentTask ? '#4fa3e3' : '#7fa7c7',
                             textShadow: '0 1px 4px rgba(0,0,0,0.10)',
-                            marginBottom: 4,
+                            marginBottom: 2,
                             textAlign: 'center',
                             width: '100%',
-                            overflow: 'hidden'
+                            overflow: 'visible',
+                            wordBreak: 'break-word'
                         }, children: currentTask ? ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: ["Now: ", (0, jsx_runtime_1.jsx)("span", { ref: titleRef, style: {
                                         textDecoration: 'underline',
                                         display: 'inline-block',
@@ -537,6 +541,6 @@ const HUD = () => {
                                         verticalAlign: 'middle',
                                         lineHeight: 1,
                                         display: 'inline-block',
-                                    }, children: ["[", formatRepeatLabel(currentTask), "]"] }))] })) : ((0, jsx_runtime_1.jsx)("span", { style: { fontStyle: 'italic', color: '#7fa7c7' }, children: "Idle" })) }), (0, jsx_runtime_1.jsx)("div", { className: "current-task-timer", style: { fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 8 }, children: currentTask ? `(${formatTimeHMS(timeLeft)} left)` : '' }), showCurrentTime && ((0, jsx_runtime_1.jsx)("div", { className: "current-time", style: { fontSize: '1em', fontWeight: 500, marginBottom: 4 }, children: currentTime?.toLocaleTimeString() })), nextTask && ((0, jsx_runtime_1.jsxs)("div", { className: "next-event", style: { fontSize: '0.95em', color: '#888', textAlign: 'center', opacity: 0.7, marginTop: 2 }, children: ["Next: ", (0, jsx_runtime_1.jsx)("span", { children: nextTask.title }), nextTask.repeat && nextTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }, children: ["[", formatRepeatLabel(nextTask), "]"] })), (0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#aaa', fontSize: '0.9em' }, children: ["(in ", formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0)), ")"] })] }))] })] }));
+                                    }, children: ["[", formatRepeatLabel(currentTask), "]"] }))] })) : ((0, jsx_runtime_1.jsx)("span", { style: { fontStyle: 'italic', color: '#7fa7c7' }, children: "Idle" })) }), (0, jsx_runtime_1.jsx)("div", { className: "current-task-timer", style: { fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 4 }, children: currentTask ? `(${formatTimeHMS(timeLeft)} left)` : '' }), showCurrentTime && ((0, jsx_runtime_1.jsx)("div", { className: "current-time", style: { fontSize: '1em', fontWeight: 500, marginBottom: 2 }, children: currentTime?.toLocaleTimeString() })), nextTask && ((0, jsx_runtime_1.jsxs)("div", { className: "next-event", style: { fontSize: '0.95em', color: '#888', textAlign: 'center', opacity: 0.7, marginTop: 0 }, children: ["Next: ", (0, jsx_runtime_1.jsx)("span", { children: nextTask.title }), nextTask.repeat && nextTask.repeat !== 'none' && ((0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }, children: ["[", formatRepeatLabel(nextTask), "]"] })), (0, jsx_runtime_1.jsxs)("span", { style: { marginLeft: 8, color: '#aaa', fontSize: '0.9em' }, children: ["(in ", formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0)), ")"] })] }))] })] }));
 };
 exports.default = HUD;
