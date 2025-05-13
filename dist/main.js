@@ -44,6 +44,76 @@ const menu_1 = require("./shared/menu");
 const electron_store_1 = __importDefault(require("electron-store"));
 const electron_updater_1 = require("electron-updater");
 const google_1 = require("./main/calendar/google");
+const child_process_1 = require("child_process");
+const os_1 = require("os");
+// Performance monitoring
+const performanceLogs = {};
+const PERFORMANCE_THRESHOLD = 1000; // 1 second threshold for warnings
+const LOG_LEVEL = {
+    DEBUG: 0,
+    INFO: 1,
+    WARN: 2,
+    ERROR: 3
+};
+const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO; // Adjust this to control logging verbosity
+function logPerformance(operation, startTime) {
+    try {
+        const duration = Date.now() - startTime;
+        if (!performanceLogs[operation]) {
+            performanceLogs[operation] = [];
+        }
+        performanceLogs[operation].push(duration);
+        // Keep only last 100 measurements
+        if (performanceLogs[operation].length > 100) {
+            performanceLogs[operation].shift();
+        }
+        // Calculate statistics
+        const avg = performanceLogs[operation].reduce((a, b) => a + b, 0) / performanceLogs[operation].length;
+        const min = Math.min(...performanceLogs[operation]);
+        const max = Math.max(...performanceLogs[operation]);
+        const lastAvg = performanceLogs[operation].slice(0, -1).reduce((a, b) => a + b, 0) / (performanceLogs[operation].length - 1) || avg;
+        // Log based on level and conditions
+        if (CURRENT_LOG_LEVEL <= LOG_LEVEL.INFO) {
+            console.log(`[PERF] ${operation}: ${duration}ms (avg: ${avg.toFixed(2)}ms, min: ${min}ms, max: ${max}ms)`);
+        }
+        if (duration > PERFORMANCE_THRESHOLD && CURRENT_LOG_LEVEL <= LOG_LEVEL.WARN) {
+            console.warn(`[PERF] ${operation} exceeded threshold: ${duration}ms > ${PERFORMANCE_THRESHOLD}ms`);
+        }
+        if (duration > avg * 2 && CURRENT_LOG_LEVEL <= LOG_LEVEL.WARN) {
+            console.warn(`[PERF] ${operation} spike detected: ${duration}ms (avg: ${avg.toFixed(2)}ms)`);
+        }
+        // Log detailed stats every 10 operations
+        if (performanceLogs[operation].length % 10 === 0 && CURRENT_LOG_LEVEL <= LOG_LEVEL.DEBUG) {
+            console.debug(`[PERF] ${operation} stats:`, {
+                samples: performanceLogs[operation].length,
+                average: avg.toFixed(2),
+                min,
+                max,
+                last10: performanceLogs[operation].slice(-10)
+            });
+        }
+        return duration;
+    }
+    catch (error) {
+        console.error(`[PERF] Error logging performance for ${operation}:`, error);
+        return 0;
+    }
+}
+function startOperation(operation) {
+    const startTime = Date.now();
+    return () => logPerformance(operation, startTime);
+}
+// Error handling wrapper
+function handleError(operation, fn) {
+    try {
+        fn();
+    }
+    catch (error) {
+        console.error(`[ERROR] ${operation} failed:`, error);
+        // You might want to show a dialog to the user here
+        electron_1.dialog.showErrorBox('Error', `${operation} failed: ${error}`);
+    }
+}
 class MainProcess {
     constructor() {
         this.mainWindow = null;
@@ -52,14 +122,37 @@ class MainProcess {
         this.settingsStore = new electron_store_1.default();
         this.updateStatus = 'idle';
         this.updateInfo = null;
+        this.autoUpdateEnabled = true;
         this.updateStore = new electron_store_1.default();
-        this.autoUpdateEnabled = this.updateStore.get('autoUpdate', true);
-        this.init();
+        this.startupStore = new electron_store_1.default({
+            name: 'startup-settings',
+            defaults: {
+                autoStart: false,
+                startTime: '09:00',
+                startDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+                startWithWindows: false
+            }
+        });
+        handleError('App Initialization', () => {
+            const endInit = startOperation('App Initialization');
+            this.autoUpdateEnabled = this.updateStore.get('autoUpdate', true);
+            this.init();
+            endInit();
+        });
     }
     init() {
+        const endReady = startOperation('App Ready');
         electron_1.app.whenReady().then(() => {
-            this.createWindow();
-            this.createTray();
+            handleError('Window Creation', () => {
+                const endWindowCreate = startOperation('Window Creation');
+                this.createWindow();
+                endWindowCreate();
+            });
+            handleError('Tray Creation', () => {
+                const endTrayCreate = startOperation('Tray Creation');
+                this.createTray();
+                endTrayCreate();
+            });
             // IPC handlers for local tasks
             electron_1.ipcMain.handle('tasks:get', () => (0, local_1.getLocalTasks)());
             electron_1.ipcMain.handle('tasks:add', (_event, task) => (0, local_1.addLocalTask)(task));
@@ -91,6 +184,8 @@ class MainProcess {
                 if (this.mainWindow && typeof settings?.alwaysOnTop === 'boolean') {
                     this.mainWindow.setAlwaysOnTop(!!settings.alwaysOnTop);
                     this.settingsStore.set('hudSettings', settings);
+                    // Forward settings to HUD window
+                    this.mainWindow.webContents.send('hud-settings-update', settings);
                 }
             });
             electron_1.ipcMain.on('test-event', (_event, data) => {
@@ -190,7 +285,25 @@ class MainProcess {
                     return { success: false, error: e?.message || String(e) };
                 }
             });
+            // Add IPC handlers for startup settings
+            electron_1.ipcMain.handle('get-startup-settings', () => {
+                return this.startupStore.store;
+            });
+            electron_1.ipcMain.handle('update-startup-settings', (_event, settings) => {
+                this.startupStore.store = settings;
+                if (settings.startWithWindows) {
+                    this.setupWindowsStartup(true);
+                }
+                else {
+                    this.setupWindowsStartup(false);
+                }
+                return true;
+            });
             // TODO: Add system tray integration here
+            endReady();
+        }).catch(error => {
+            console.error('[ERROR] App ready failed:', error);
+            electron_1.dialog.showErrorBox('Error', 'Failed to initialize app: ' + error);
         });
         electron_1.app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') {
@@ -245,42 +358,56 @@ class MainProcess {
         return appIconPath;
     }
     createWindow() {
-        console.log('[DEBUG] createWindow called');
-        const { width, height } = electron_1.screen.getPrimaryDisplay().workAreaSize;
-        const savedPlacement = this.settingsStore.get('hudPlacement', 'top-right');
-        const hudSettings = this.settingsStore.get('hudSettings', { alwaysOnTop: true });
-        const appIconPath = this.getAppIconPathAndLog();
-        this.mainWindow = new electron_1.BrowserWindow({
-            width: 320,
-            height: 100,
-            x: width - 340,
-            y: 20,
-            frame: false,
-            transparent: true,
-            alwaysOnTop: !!hudSettings.alwaysOnTop,
-            icon: appIconPath,
-            webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false
-            }
-        });
-        // Set dock icon for macOS
-        if (process.platform === 'darwin' && appIconPath) {
-            electron_1.app.dock.setIcon(appIconPath);
-        }
-        this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
-        this.mainWindow.setIgnoreMouseEvents(true, { forward: true });
-        this.mainWindow.webContents.on('context-menu', (_event, params) => {
-            this.mainWindow.setIgnoreMouseEvents(false);
-            const menu = electron_1.Menu.buildFromTemplate(this.buildMenuTemplate());
-            menu.popup({ window: this.mainWindow });
-            menu.once('menu-will-close', () => {
-                this.mainWindow.setIgnoreMouseEvents(true);
+        const endCreate = startOperation('Main Window Creation');
+        try {
+            console.log('[DEBUG] createWindow called');
+            const { width, height } = electron_1.screen.getPrimaryDisplay().workAreaSize;
+            const savedPlacement = this.settingsStore.get('hudPlacement', 'top-right');
+            const hudSettings = this.settingsStore.get('hudSettings', { alwaysOnTop: true });
+            const appIconPath = this.getAppIconPathAndLog();
+            this.mainWindow = new electron_1.BrowserWindow({
+                width: 320,
+                height: 100,
+                x: width - 340,
+                y: 20,
+                frame: false,
+                transparent: true,
+                alwaysOnTop: !!hudSettings.alwaysOnTop,
+                icon: appIconPath,
+                webPreferences: {
+                    nodeIntegration: true,
+                    contextIsolation: false
+                }
             });
-        });
-        this.mainWindow.once('ready-to-show', () => {
-            this.updateHudPlacement(savedPlacement);
-        });
+            // Set dock icon for macOS
+            if (process.platform === 'darwin' && appIconPath) {
+                electron_1.app.dock.setIcon(appIconPath);
+            }
+            this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
+            this.mainWindow.setIgnoreMouseEvents(true, { forward: true });
+            this.mainWindow.webContents.on('context-menu', (_event, params) => {
+                this.mainWindow.setIgnoreMouseEvents(false);
+                const menu = electron_1.Menu.buildFromTemplate(this.buildMenuTemplate());
+                menu.popup({ window: this.mainWindow });
+                menu.once('menu-will-close', () => {
+                    this.mainWindow.setIgnoreMouseEvents(true);
+                });
+            });
+            this.mainWindow.once('ready-to-show', () => {
+                this.updateHudPlacement(savedPlacement);
+            });
+            // Check if we should start the HUD
+            if (this.shouldStartNow()) {
+                this.mainWindow.show();
+            }
+        }
+        catch (error) {
+            console.error('[ERROR] Window creation failed:', error);
+            electron_1.dialog.showErrorBox('Error', 'Failed to create window: ' + error);
+        }
+        finally {
+            endCreate();
+        }
     }
     openManagementWindow(alwaysOnTop = false) {
         console.log('[DEBUG] openManagementWindow called');
@@ -448,5 +575,42 @@ class MainProcess {
             win.webContents.send('update-status', { status, info });
         });
     }
+    setupWindowsStartup(enable) {
+        const endSetup = startOperation('Windows Startup Setup');
+        const exePath = process.execPath;
+        const startupKey = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run';
+        const appName = 'Time Keeper';
+        if ((0, os_1.platform)() === 'win32') {
+            if (enable) {
+                (0, child_process_1.exec)(`reg add HKCU\\${startupKey} /v "${appName}" /t REG_SZ /d "${exePath}" /f`);
+            }
+            else {
+                (0, child_process_1.exec)(`reg delete HKCU\\${startupKey} /v "${appName}" /f`);
+            }
+        }
+        endSetup();
+    }
+    shouldStartNow() {
+        const endCheck = startOperation('Startup Check');
+        const settings = this.startupStore.store;
+        if (!settings.autoStart) {
+            endCheck();
+            return false;
+        }
+        const now = new Date();
+        const [hours, minutes] = settings.startTime.split(':').map(Number);
+        const startTime = new Date(now);
+        startTime.setHours(hours, minutes, 0, 0);
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDay = days[now.getDay()];
+        const result = settings.startDays.includes(currentDay) &&
+            Math.abs(now.getTime() - startTime.getTime()) < 60000;
+        endCheck();
+        return result;
+    }
 }
-new MainProcess();
+// Start performance monitoring
+console.log('[PERF] Starting performance monitoring');
+handleError('App Startup', () => {
+    new MainProcess();
+});

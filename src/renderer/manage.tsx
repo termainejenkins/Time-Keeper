@@ -20,6 +20,21 @@ const defaultHudSettings = {
   opacity: 0.85,
   placement: 'top-center',
   alwaysOnTop: true,
+  showBorder: true,
+  dynamicBorderColor: true,
+  borderColors: {
+    normal: '#4fa3e3',
+    warning: '#ffa726',
+    critical: '#ef5350'
+  },
+  previewAnimation: false
+};
+
+const defaultStartupSettings = {
+  autoStart: false,
+  startTime: '09:00',
+  startDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+  startWithWindows: false
 };
 
 const defaultViewMode = 'both'; // 'local', 'google', or 'both'
@@ -50,6 +65,20 @@ const saveHudSettings = (settings: any) => {
     ipcRenderer.send('hud-settings-update', settings);
   }
 };
+
+// Add type declaration for window.electron
+declare global {
+  interface Window {
+    electron: {
+      ipcRenderer: {
+        invoke(channel: string, ...args: any[]): Promise<any>;
+        send(channel: string, ...args: any[]): void;
+        on(channel: string, func: (...args: any[]) => void): void;
+        removeAllListeners(channel: string): void;
+      };
+    };
+  }
+}
 
 const App: React.FC = () => {
   const [selected, setSelected] = useState('tasks');
@@ -190,6 +219,84 @@ const App: React.FC = () => {
 
   const handleReset = () => {
     setHudSettings({ ...defaultHudSettings });
+  };
+
+  const [previewTimeLeft, setPreviewTimeLeft] = useState<number>(30 * 1000);
+  const [isPreviewAnimating, setIsPreviewAnimating] = useState(false);
+
+  // Calculate preview border color
+  const getPreviewBorderColor = () => {
+    if (!hudSettings.dynamicBorderColor) return hudSettings.borderColors.normal;
+    
+    const secondsLeft = previewTimeLeft / 1000;
+    if (secondsLeft <= 5) return hudSettings.borderColors.critical;
+    if (secondsLeft <= 15) return hudSettings.borderColors.warning;
+    return hudSettings.borderColors.normal;
+  };
+
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset animation state when component unmounts
+      setIsPreviewAnimating(false);
+      setPreviewTimeLeft(30 * 1000);
+      // If settings are still in memory, update them to disable preview
+      if (hudSettings.previewAnimation) {
+        setHudSettings(prev => ({ ...prev, previewAnimation: false }));
+      }
+    };
+  }, []);
+
+  // Start/stop preview animation when HUD tab is selected/deselected and preview is enabled
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (selected === 'hud' && hudSettings.dynamicBorderColor && hudSettings.previewAnimation) {
+      setIsPreviewAnimating(true);
+      interval = setInterval(() => {
+        setPreviewTimeLeft(prev => {
+          // Cycle from 30 seconds down to 0 and back up
+          if (prev <= 0) return 30 * 1000;
+          return prev - 1000;
+        });
+      }, 100); // Update every 100ms for faster preview
+    } else {
+      // Reset animation state when conditions are not met
+      setIsPreviewAnimating(false);
+      setPreviewTimeLeft(30 * 1000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      setIsPreviewAnimating(false);
+    };
+  }, [selected, hudSettings.dynamicBorderColor, hudSettings.previewAnimation]);
+
+  const [startupSettings, setStartupSettings] = useState(defaultStartupSettings);
+  const [activeTab, setActiveTab] = useState('tasks');
+
+  useEffect(() => {
+    // Load startup settings
+    const loadStartupSettings = async () => {
+      try {
+        const settings = await window.electron.ipcRenderer.invoke('get-startup-settings');
+        setStartupSettings(settings);
+      } catch (error) {
+        console.error('Failed to load startup settings:', error);
+      }
+    };
+    loadStartupSettings();
+  }, []);
+
+  const handleStartupSettingsChange = async (newSettings: typeof defaultStartupSettings) => {
+    setStartupSettings(newSettings);
+    try {
+      await window.electron.ipcRenderer.invoke('update-startup-settings', newSettings);
+    } catch (error) {
+      console.error('Failed to update startup settings:', error);
+    }
   };
 
   return (
@@ -335,6 +442,64 @@ const App: React.FC = () => {
                 Always on Top
               </label>
               <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                <input type="checkbox" checked={hudSettings.showBorder} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, showBorder: e.target.checked }))} />
+                Show Border
+              </label>
+              {hudSettings.showBorder && (
+                <>
+                  <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                    <input type="checkbox" checked={hudSettings.dynamicBorderColor} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, dynamicBorderColor: e.target.checked }))} />
+                    Dynamic Border Color
+                  </label>
+                  {hudSettings.dynamicBorderColor && (
+                    <>
+                      <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10, paddingLeft: 24 }}>
+                        <input type="checkbox" checked={hudSettings.previewAnimation} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, previewAnimation: e.target.checked }))} />
+                        Enable Preview Animation
+                      </label>
+                      <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
+                        <div style={{ marginBottom: 8 }}>
+                          <label style={{ display: 'block', marginBottom: 4 }}>Normal Color:</label>
+                          <input
+                            type="color"
+                            value={hudSettings.borderColors.normal}
+                            onChange={e => setHudSettings((s: HudSettings) => ({ 
+                              ...s, 
+                              borderColors: { ...s.borderColors, normal: e.target.value }
+                            }))}
+                            style={{ width: '100%', height: 24 }}
+                          />
+                        </div>
+                        <div style={{ marginBottom: 8 }}>
+                          <label style={{ display: 'block', marginBottom: 4 }}>Warning Color (≤15min):</label>
+                          <input
+                            type="color"
+                            value={hudSettings.borderColors.warning}
+                            onChange={e => setHudSettings((s: HudSettings) => ({ 
+                              ...s, 
+                              borderColors: { ...s.borderColors, warning: e.target.value }
+                            }))}
+                            style={{ width: '100%', height: 24 }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: 4 }}>Critical Color (≤5min):</label>
+                          <input
+                            type="color"
+                            value={hudSettings.borderColors.critical}
+                            onChange={e => setHudSettings((s: HudSettings) => ({ 
+                              ...s, 
+                              borderColors: { ...s.borderColors, critical: e.target.value }
+                            }))}
+                            style={{ width: '100%', height: 24 }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
                 Placement
                 <select
                   value={hudSettings.placement}
@@ -384,6 +549,60 @@ const App: React.FC = () => {
                 Reset to Defaults
               </button>
             </div>
+            <div style={{ marginTop: 40, borderTop: '1px solid #eee', paddingTop: 24 }}>
+              <h3 style={{ fontWeight: 600, fontSize: 18, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Startup Options</h3>
+              <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, maxWidth: 400 }}>
+                <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={startupSettings.autoStart}
+                    onChange={e => handleStartupSettingsChange({ ...startupSettings, autoStart: e.target.checked })}
+                  />
+                  Enable scheduled startup
+                </label>
+                {startupSettings.autoStart && (
+                  <>
+                    <div style={{ marginBottom: 18, paddingLeft: 24 }}>
+                      <label style={{ display: 'block', marginBottom: 8 }}>Start Time:</label>
+                      <input
+                        type="time"
+                        value={startupSettings.startTime}
+                        onChange={e => handleStartupSettingsChange({ ...startupSettings, startTime: e.target.value })}
+                        style={{ padding: '4px 8px', borderRadius: 4 }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: 18, paddingLeft: 24 }}>
+                      <label style={{ display: 'block', marginBottom: 8 }}>Start Days:</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+                          <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <input
+                              type="checkbox"
+                              checked={startupSettings.startDays.includes(day)}
+                              onChange={e => {
+                                const newDays = e.target.checked
+                                  ? [...startupSettings.startDays, day]
+                                  : startupSettings.startDays.filter(d => d !== day);
+                                handleStartupSettingsChange({ ...startupSettings, startDays: newDays });
+                              }}
+                            />
+                            {day.charAt(0).toUpperCase() + day.slice(1)}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+                <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={startupSettings.startWithWindows}
+                    onChange={e => handleStartupSettingsChange({ ...startupSettings, startWithWindows: e.target.checked })}
+                  />
+                  Start with Windows
+                </label>
+              </div>
+            </div>
             {/* Live preview */}
             <div
               style={{
@@ -401,8 +620,8 @@ const App: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                border: hudSettings.darkMode ? '1.5px solid #222' : '1.5px solid #2222',
-                transition: 'background 0.2s, color 0.2s',
+                border: hudSettings.showBorder ? `2px solid ${getPreviewBorderColor()}` : 'none',
+                transition: 'background 0.2s, color 0.2s, border 0.2s',
               }}
             >
               <span style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, color: hudSettings.darkMode ? '#b3d1f7' : '#cce6ff' }}>HUD Preview</span>
@@ -410,7 +629,16 @@ const App: React.FC = () => {
               {hudSettings.showCurrentTime && (
                 <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>12:34:56 PM</span>
               )}
-              <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>(00:12:34 left)</span>
+              {hudSettings.previewAnimation && (
+                <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>
+                  ({Math.floor(previewTimeLeft / 1000)} seconds left)
+                </span>
+              )}
+              {hudSettings.dynamicBorderColor && (
+                <span style={{ fontSize: 12, color: hudSettings.darkMode ? '#aaa' : '#888', marginTop: 8 }}>
+                  {isPreviewAnimating ? 'Previewing dynamic colors...' : 'Dynamic colors enabled'}
+                </span>
+              )}
             </div>
           </>
         )}

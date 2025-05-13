@@ -170,4 +170,30 @@ This document details the major design choices made in the development of the Ti
 
 ## 10. Summary
 
-These design choices prioritize modularity, maintainability, and a clean user experience. As the app grows, further improvements (shared settings store, advanced styling, more robust state management) are planned. 
+These design choices prioritize modularity, maintainability, and a clean user experience. As the app grows, further improvements (shared settings store, advanced styling, more robust state management) are planned.
+
+---
+
+## 11. Manual Task Deletion
+
+**Decision:**
+- Added a Delete button to each task in the Task List, allowing users to manually remove tasks.
+
+**Rationale:**
+- Users need the ability to remove obsolete or unwanted tasks directly from the UI for better control and management.
+- Immediate feedback and a simple workflow improve the overall user experience.
+
+**Implementation Details:**
+- The TaskList component now includes a Delete button next to the Edit button for each task.
+- Clicking Delete removes the task from the UI instantly and sends a delete request to the main process via IPC.
+- Error handling ensures the UI stays in sync with the backend.
+- TypeScript error handling was improved for robustness.
+
+**UI/UX Considerations:**
+- The Delete button uses a red color scheme to indicate its destructive nature.
+- Deletion is instant and does not require a page reload.
+- The button is placed next to Edit for discoverability and convenience.
+
+**Alternatives Considered:**
+- Hiding delete behind a context menu: rejected for discoverability.
+- Requiring confirmation for every delete: deferred for now, may be added as an option in the future. 

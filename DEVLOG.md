@@ -108,10 +108,17 @@ This document tracks the progress of development work on the Time Keeper app. Up
   - Support for modifying repeat settings (interval, days) for repeating tasks
   - Cancel button added to edit mode
   - Improved UI for task list items with edit button
+- Added the ability to delete tasks from the Task List. Each task now has a Delete button next to the Edit button.
 
-### Bug Fixes
-- Fixed TypeScript errors in HUD and TaskList components related to repeat property typing.
-- Ensured that the app builds and runs without errors after changes.
+### Technical Details
+- Implemented a `handleTaskDeleted` function in the TaskList component.
+- The function removes the task from local state immediately for instant UI feedback, then sends a delete request to the main process via IPC.
+- If an error occurs, the task list is refreshed to ensure consistency.
+- TypeScript error handling was improved by specifying `error: unknown` in all relevant catch blocks.
+
+### UI/UX Enhancements
+- The Delete button is styled distinctly (red color scheme) and appears next to the Edit button for each task.
+- Deleting a task is instant and does not require a page reload.
 
 ### Changes Accepted
 - UI improvements for the HUD and Task List as per user feedback.

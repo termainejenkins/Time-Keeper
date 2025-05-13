@@ -1,0 +1,35 @@
+# Dependencies
+# node_modules contains installed packages and should not be version controlled
+# as it can be recreated from package.json and package-lock.json
+node_modules/
+
+# Production build
+# dist/ contains compiled JavaScript and other assets generated from source files
+# These files can be recreated by running the build process
+dist/
+# build/ is an alternative build directory used by some tools
+build/
+
+# Debug logs
+# These files contain debugging information and error logs that are specific
+# to local development environments and should not be shared
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+# These files contain sensitive information like API keys and credentials
+# that should not be committed to version control
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+# These are user-specific settings and temporary files created by IDEs and editors
+.idea/          # JetBrains IDE settings
+.vscode/        # Visual Studio Code settings
+*.swp           # Vim swap files
+*.swo           # Vim swap files
+.DS_Store       # macOS system files 

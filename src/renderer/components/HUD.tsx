@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { LocalTask, CustomRepeatSettings, WeekdayRepeatSettings } from '../../shared/types/task';
+import { IpcRendererEvent } from 'electron';
 
 const DAY_ABBREVIATIONS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+interface HudSettings {
+  opacity: number;
+  showBorder: boolean;
+  dynamicBorderColor: boolean;
+  borderColors: {
+    normal: string;
+    warning: string;
+    critical: string;
+  };
+}
 
 const HUD: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<Date | null>(new Date());
@@ -13,10 +25,76 @@ const HUD: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [clickThrough, setClickThrough] = useState(true);
   const [showCurrentTime, setShowCurrentTime] = useState(false);
+  const [showBorder, setShowBorder] = useState(true);
+  const [dynamicBorderColor, setDynamicBorderColor] = useState(true);
+  const [borderColors, setBorderColors] = useState({
+    normal: '#4fa3e3',
+    warning: '#ffa726',
+    critical: '#ef5350'
+  });
+  const [borderColor, setBorderColor] = useState('#4fa3e3');
   const menuRef = useRef<HTMLDivElement>(null);
   const ipcRenderer = (window as any).require?.('electron')?.ipcRenderer;
   const [titleScale, setTitleScale] = useState(1);
   const titleRef = useRef<HTMLSpanElement>(null);
+  const [opacity, setOpacity] = useState(0.85);
+
+  // Calculate border color based on time left
+  const calculateBorderColor = (timeLeft: number | null) => {
+    if (!dynamicBorderColor || timeLeft === null) return borderColors.normal;
+    
+    const minutesLeft = timeLeft / (1000 * 60);
+    if (minutesLeft <= 5) return borderColors.critical;
+    if (minutesLeft <= 15) return borderColors.warning;
+    return borderColors.normal;
+  };
+
+  // Update border color when time left changes
+  useEffect(() => {
+    setBorderColor(calculateBorderColor(timeLeft));
+  }, [timeLeft, dynamicBorderColor, borderColors]);
+
+  // Load HUD settings from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('hudSettings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings) as HudSettings;
+        setOpacity(settings.opacity ?? 0.85);
+        setShowBorder(settings.showBorder ?? true);
+        setDynamicBorderColor(settings.dynamicBorderColor ?? true);
+        setBorderColors(settings.borderColors ?? {
+          normal: '#4fa3e3',
+          warning: '#ffa726',
+          critical: '#ef5350'
+        });
+      }
+    } catch (error) {
+      console.error('Error loading HUD settings:', error);
+    }
+  }, []);
+
+  // Listen for HUD settings updates
+  useEffect(() => {
+    if (!ipcRenderer) return;
+
+    const handleSettingsUpdate = (_event: IpcRendererEvent, settings: Partial<HudSettings>) => {
+      try {
+        if (typeof settings.opacity === 'number') setOpacity(settings.opacity);
+        if (typeof settings.showBorder === 'boolean') setShowBorder(settings.showBorder);
+        if (typeof settings.dynamicBorderColor === 'boolean') setDynamicBorderColor(settings.dynamicBorderColor);
+        if (settings.borderColors) setBorderColors(settings.borderColors);
+      } catch (error) {
+        console.error('Error updating HUD settings:', error);
+      }
+    };
+
+    ipcRenderer.on('hud-settings-update', handleSettingsUpdate);
+    
+    return () => {
+      ipcRenderer.removeListener('hud-settings-update', handleSettingsUpdate);
+    };
+  }, []);
 
   // Place getCurrentAndNextTask function here (above useEffect)
   const getCurrentAndNextTask = (tasks: LocalTask[], now: Date) => {
@@ -35,36 +113,36 @@ const HUD: React.FC = () => {
 
         switch (task.repeat) {
           case 'daily': {
-            const todayStart = new Date(now);
-            todayStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
-            const todayEnd = new Date(todayStart);
-            todayEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+        const todayStart = new Date(now);
+        todayStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+        const todayEnd = new Date(todayStart);
+        todayEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
             if (todayEnd <= todayStart) todayEnd.setDate(todayEnd.getDate() + 1);
-            occurrences.push({ start: todayStart, end: todayEnd });
-            if (todayEnd <= now) {
-              const tomorrowStart = new Date(todayStart);
-              tomorrowStart.setDate(todayStart.getDate() + 1);
-              const tomorrowEnd = new Date(todayEnd);
-              tomorrowEnd.setDate(todayEnd.getDate() + 1);
-              occurrences.push({ start: tomorrowStart, end: tomorrowEnd });
-            }
+        occurrences.push({ start: todayStart, end: todayEnd });
+        if (todayEnd <= now) {
+          const tomorrowStart = new Date(todayStart);
+          tomorrowStart.setDate(todayStart.getDate() + 1);
+          const tomorrowEnd = new Date(todayEnd);
+          tomorrowEnd.setDate(todayEnd.getDate() + 1);
+          occurrences.push({ start: tomorrowStart, end: tomorrowEnd });
+        }
             break;
           }
           case 'weekly': {
             const dayDiff = (baseStart.getDay() - now.getDay() + 7) % 7;
             const thisWeekStart = new Date(now);
             thisWeekStart.setDate(now.getDate() + dayDiff);
-            thisWeekStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
-            const thisWeekEnd = new Date(thisWeekStart);
-            thisWeekEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
+        thisWeekStart.setHours(baseStart.getHours(), baseStart.getMinutes(), baseStart.getSeconds(), 0);
+        const thisWeekEnd = new Date(thisWeekStart);
+        thisWeekEnd.setHours(baseEnd.getHours(), baseEnd.getMinutes(), baseEnd.getSeconds(), 0);
             if (thisWeekEnd <= thisWeekStart) thisWeekEnd.setDate(thisWeekEnd.getDate() + 1);
-            occurrences.push({ start: thisWeekStart, end: thisWeekEnd });
-            if (thisWeekEnd <= now) {
-              const nextWeekStart = new Date(thisWeekStart);
-              nextWeekStart.setDate(thisWeekStart.getDate() + 7);
-              const nextWeekEnd = new Date(thisWeekEnd);
-              nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
-              occurrences.push({ start: nextWeekStart, end: nextWeekEnd });
+        occurrences.push({ start: thisWeekStart, end: thisWeekEnd });
+        if (thisWeekEnd <= now) {
+          const nextWeekStart = new Date(thisWeekStart);
+          nextWeekStart.setDate(thisWeekStart.getDate() + 7);
+          const nextWeekEnd = new Date(thisWeekEnd);
+          nextWeekEnd.setDate(thisWeekEnd.getDate() + 7);
+          occurrences.push({ start: nextWeekStart, end: nextWeekEnd });
             }
             break;
           }
@@ -214,7 +292,7 @@ const HUD: React.FC = () => {
       setCurrentTime(now);
       const { currentTask, currentTaskTimeLeft, nextTask, nextTaskTimeLeft } = getCurrentAndNextTask(tasks, now);
       setCurrentTask(currentTask);
-      setNextTask(currentTask ? null : nextTask); // Only show next if not in current
+      setNextTask(nextTask); // Always show next task
       setTimeLeft(currentTask ? currentTaskTimeLeft : nextTaskTimeLeft);
     }, 1000);
     return () => clearInterval(timer);
@@ -368,7 +446,21 @@ const HUD: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      style={{ position: 'relative' }}
+      style={{ 
+        position: 'relative',
+        border: showBorder ? `2px solid ${borderColor}` : 'none',
+        borderRadius: 8,
+        padding: '0 8px 8px 8px',
+        transition: 'border-color 0.3s ease, opacity 0.3s ease',
+        overflow: 'hidden',
+        minHeight: 'fit-content',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'transparent',
+        margin: 0,
+        boxSizing: 'border-box',
+        opacity: opacity
+      }}
     >
       {/* Hamburger menu button and dropdown as siblings to the HUD container */}
       <div style={{
@@ -379,15 +471,15 @@ const HUD: React.FC = () => {
         pointerEvents: 'auto',
         width: 40,
         height: 40,
-        background: 'rgba(255,255,255,0.01)',
-        borderRadius: 8,
+        background: 'transparent',
+        borderRadius: '0 8px 0 8px',
       }}>
         <button
           className="hud-hamburger"
           style={{
             width: 32,
             height: 32,
-            background: 'rgba(255,255,255,0.1)',
+            background: 'transparent',
             border: 'none',
             borderRadius: 6,
             cursor: 'pointer',
@@ -448,6 +540,60 @@ const HUD: React.FC = () => {
               Show Current Time
             </label>
             <div style={{ borderTop: '1px solid #eee' }} />
+            <label style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={showBorder}
+                onChange={e => setShowBorder(e.target.checked)}
+                style={{ marginRight: 8 }}
+              />
+              Show Border
+            </label>
+            {showBorder && (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={dynamicBorderColor}
+                    onChange={e => setDynamicBorderColor(e.target.checked)}
+                    style={{ marginRight: 8 }}
+                  />
+                  Dynamic Border Color
+                </label>
+                {dynamicBorderColor && (
+                  <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', marginBottom: 4 }}>Normal Color:</label>
+                      <input
+                        type="color"
+                        value={borderColors.normal}
+                        onChange={e => setBorderColors(prev => ({ ...prev, normal: e.target.value }))}
+                        style={{ width: '100%', height: 24 }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <label style={{ display: 'block', marginBottom: 4 }}>Warning Color (≤15min):</label>
+                      <input
+                        type="color"
+                        value={borderColors.warning}
+                        onChange={e => setBorderColors(prev => ({ ...prev, warning: e.target.value }))}
+                        style={{ width: '100%', height: 24 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: 4 }}>Critical Color (≤5min):</label>
+                      <input
+                        type="color"
+                        value={borderColors.critical}
+                        onChange={e => setBorderColors(prev => ({ ...prev, critical: e.target.value }))}
+                        style={{ width: '100%', height: 24 }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            <div style={{ borderTop: '1px solid #eee' }} />
             <button
               style={{
                 width: '100%',
@@ -483,7 +629,13 @@ const HUD: React.FC = () => {
       </div>
 
       {/* Main HUD container with pointerEvents: 'none' */}
-      <div className="hud-container" style={{ pointerEvents: 'none' }}>
+      <div className="hud-container" style={{ 
+        pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        width: '100%'
+      }}>
         <div className="current-task-prominent" style={{
           fontSize: '1.3em',
           fontWeight: 700,

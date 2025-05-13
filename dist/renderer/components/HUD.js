@@ -13,10 +13,78 @@ const HUD = () => {
     const [menuOpen, setMenuOpen] = (0, react_1.useState)(false);
     const [clickThrough, setClickThrough] = (0, react_1.useState)(true);
     const [showCurrentTime, setShowCurrentTime] = (0, react_1.useState)(false);
+    const [showBorder, setShowBorder] = (0, react_1.useState)(true);
+    const [dynamicBorderColor, setDynamicBorderColor] = (0, react_1.useState)(true);
+    const [borderColors, setBorderColors] = (0, react_1.useState)({
+        normal: '#4fa3e3',
+        warning: '#ffa726',
+        critical: '#ef5350'
+    });
+    const [borderColor, setBorderColor] = (0, react_1.useState)('#4fa3e3');
     const menuRef = (0, react_1.useRef)(null);
     const ipcRenderer = window.require?.('electron')?.ipcRenderer;
     const [titleScale, setTitleScale] = (0, react_1.useState)(1);
     const titleRef = (0, react_1.useRef)(null);
+    const [opacity, setOpacity] = (0, react_1.useState)(0.85);
+    // Calculate border color based on time left
+    const calculateBorderColor = (timeLeft) => {
+        if (!dynamicBorderColor || timeLeft === null)
+            return borderColors.normal;
+        const minutesLeft = timeLeft / (1000 * 60);
+        if (minutesLeft <= 5)
+            return borderColors.critical;
+        if (minutesLeft <= 15)
+            return borderColors.warning;
+        return borderColors.normal;
+    };
+    // Update border color when time left changes
+    (0, react_1.useEffect)(() => {
+        setBorderColor(calculateBorderColor(timeLeft));
+    }, [timeLeft, dynamicBorderColor, borderColors]);
+    // Load HUD settings from localStorage on mount
+    (0, react_1.useEffect)(() => {
+        try {
+            const savedSettings = localStorage.getItem('hudSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                setOpacity(settings.opacity ?? 0.85);
+                setShowBorder(settings.showBorder ?? true);
+                setDynamicBorderColor(settings.dynamicBorderColor ?? true);
+                setBorderColors(settings.borderColors ?? {
+                    normal: '#4fa3e3',
+                    warning: '#ffa726',
+                    critical: '#ef5350'
+                });
+            }
+        }
+        catch (error) {
+            console.error('Error loading HUD settings:', error);
+        }
+    }, []);
+    // Listen for HUD settings updates
+    (0, react_1.useEffect)(() => {
+        if (!ipcRenderer)
+            return;
+        const handleSettingsUpdate = (_event, settings) => {
+            try {
+                if (typeof settings.opacity === 'number')
+                    setOpacity(settings.opacity);
+                if (typeof settings.showBorder === 'boolean')
+                    setShowBorder(settings.showBorder);
+                if (typeof settings.dynamicBorderColor === 'boolean')
+                    setDynamicBorderColor(settings.dynamicBorderColor);
+                if (settings.borderColors)
+                    setBorderColors(settings.borderColors);
+            }
+            catch (error) {
+                console.error('Error updating HUD settings:', error);
+            }
+        };
+        ipcRenderer.on('hud-settings-update', handleSettingsUpdate);
+        return () => {
+            ipcRenderer.removeListener('hud-settings-update', handleSettingsUpdate);
+        };
+    }, []);
     // Place getCurrentAndNextTask function here (above useEffect)
     const getCurrentAndNextTask = (tasks, now) => {
         let current = null;
@@ -217,7 +285,7 @@ const HUD = () => {
             setCurrentTime(now);
             const { currentTask, currentTaskTimeLeft, nextTask, nextTaskTimeLeft } = getCurrentAndNextTask(tasks, now);
             setCurrentTask(currentTask);
-            setNextTask(currentTask ? null : nextTask); // Only show next if not in current
+            setNextTask(nextTask); // Always show next task
             setTimeLeft(currentTask ? currentTaskTimeLeft : nextTaskTimeLeft);
         }, 1000);
         return () => clearInterval(timer);
@@ -364,7 +432,21 @@ const HUD = () => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [currentTask]);
-    return ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.5 }, style: { position: 'relative' }, children: [(0, jsx_runtime_1.jsxs)("div", { style: {
+    return ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.5 }, style: {
+            position: 'relative',
+            border: showBorder ? `2px solid ${borderColor}` : 'none',
+            borderRadius: 8,
+            padding: '0 8px 8px 8px',
+            transition: 'border-color 0.3s ease, opacity 0.3s ease',
+            overflow: 'hidden',
+            minHeight: 'fit-content',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'transparent',
+            margin: 0,
+            boxSizing: 'border-box',
+            opacity: opacity
+        }, children: [(0, jsx_runtime_1.jsxs)("div", { style: {
                     position: 'absolute',
                     top: 0,
                     right: 0,
@@ -372,12 +454,12 @@ const HUD = () => {
                     pointerEvents: 'auto',
                     width: 40,
                     height: 40,
-                    background: 'rgba(255,255,255,0.01)',
-                    borderRadius: 8,
+                    background: 'transparent',
+                    borderRadius: '0 8px 0 8px',
                 }, children: [(0, jsx_runtime_1.jsxs)("button", { className: "hud-hamburger", style: {
                             width: 32,
                             height: 32,
-                            background: 'rgba(255,255,255,0.1)',
+                            background: 'transparent',
                             border: 'none',
                             borderRadius: 6,
                             cursor: 'pointer',
@@ -405,7 +487,7 @@ const HUD = () => {
                             minWidth: 180,
                             padding: 0,
                             pointerEvents: 'auto',
-                        }, children: [(0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: clickThrough, onChange: e => setClickThrough(e.target.checked), style: { marginRight: 8 } }), "Enable Click-Through"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: showCurrentTime, onChange: e => setShowCurrentTime(e.target.checked), style: { marginRight: 8 } }), "Show Current Time"] }), (0, jsx_runtime_1.jsx)("div", { style: { borderTop: '1px solid #eee' } }), (0, jsx_runtime_1.jsx)("button", { style: {
+                        }, children: [(0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: clickThrough, onChange: e => setClickThrough(e.target.checked), style: { marginRight: 8 } }), "Enable Click-Through"] }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: showCurrentTime, onChange: e => setShowCurrentTime(e.target.checked), style: { marginRight: 8 } }), "Show Current Time"] }), (0, jsx_runtime_1.jsx)("div", { style: { borderTop: '1px solid #eee' } }), (0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: showBorder, onChange: e => setShowBorder(e.target.checked), style: { marginRight: 8 } }), "Show Border"] }), showBorder && ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("label", { style: { display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }, children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: dynamicBorderColor, onChange: e => setDynamicBorderColor(e.target.checked), style: { marginRight: 8 } }), "Dynamic Border Color"] }), dynamicBorderColor && ((0, jsx_runtime_1.jsxs)("div", { style: { padding: '0 16px 10px', fontSize: 14 }, children: [(0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 8 }, children: [(0, jsx_runtime_1.jsx)("label", { style: { display: 'block', marginBottom: 4 }, children: "Normal Color:" }), (0, jsx_runtime_1.jsx)("input", { type: "color", value: borderColors.normal, onChange: e => setBorderColors(prev => ({ ...prev, normal: e.target.value })), style: { width: '100%', height: 24 } })] }), (0, jsx_runtime_1.jsxs)("div", { style: { marginBottom: 8 }, children: [(0, jsx_runtime_1.jsx)("label", { style: { display: 'block', marginBottom: 4 }, children: "Warning Color (\u226415min):" }), (0, jsx_runtime_1.jsx)("input", { type: "color", value: borderColors.warning, onChange: e => setBorderColors(prev => ({ ...prev, warning: e.target.value })), style: { width: '100%', height: 24 } })] }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("label", { style: { display: 'block', marginBottom: 4 }, children: "Critical Color (\u22645min):" }), (0, jsx_runtime_1.jsx)("input", { type: "color", value: borderColors.critical, onChange: e => setBorderColors(prev => ({ ...prev, critical: e.target.value })), style: { width: '100%', height: 24 } })] })] }))] })), (0, jsx_runtime_1.jsx)("div", { style: { borderTop: '1px solid #eee' } }), (0, jsx_runtime_1.jsx)("button", { style: {
                                     width: '100%',
                                     padding: '10px 16px',
                                     background: 'none',
@@ -422,7 +504,13 @@ const HUD = () => {
                                     cursor: 'pointer',
                                     color: '#c00',
                                     fontSize: 15,
-                                }, onClick: () => handleMenuClick('quit'), children: "Quit" })] }))] }), (0, jsx_runtime_1.jsxs)("div", { className: "hud-container", style: { pointerEvents: 'none' }, children: [(0, jsx_runtime_1.jsx)("div", { className: "current-task-prominent", style: {
+                                }, onClick: () => handleMenuClick('quit'), children: "Quit" })] }))] }), (0, jsx_runtime_1.jsxs)("div", { className: "hud-container", style: {
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    width: '100%'
+                }, children: [(0, jsx_runtime_1.jsx)("div", { className: "current-task-prominent", style: {
                             fontSize: '1.3em',
                             fontWeight: 700,
                             color: currentTask ? '#4fa3e3' : '#7fa7c7',
