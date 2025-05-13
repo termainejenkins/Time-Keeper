@@ -458,6 +458,22 @@ const App: React.FC = () => {
                         <input type="checkbox" checked={hudSettings.previewAnimation} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, previewAnimation: e.target.checked }))} />
                         Enable Preview Animation
                       </label>
+                      {hudSettings.previewAnimation && (
+                        <div style={{ 
+                          marginLeft: 24, 
+                          marginBottom: 18, 
+                          padding: '12px',
+                          border: `2px solid ${getPreviewBorderColor()}`,
+                          borderRadius: 8,
+                          background: 'rgba(0, 0, 0, 0.7)',
+                          color: 'white',
+                          width: 'fit-content',
+                          transition: 'border-color 0.3s ease'
+                        }}>
+                          <div style={{ fontSize: '1.3em', fontWeight: 700, marginBottom: 4 }}>Sample Task</div>
+                          <div style={{ fontSize: '1em', color: '#666' }}>({Math.floor(previewTimeLeft / 1000)}s left)</div>
+                        </div>
+                      )}
                       <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
                         <div style={{ marginBottom: 8 }}>
                           <label style={{ display: 'block', marginBottom: 4 }}>Normal Color:</label>
