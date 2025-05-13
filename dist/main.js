@@ -440,7 +440,7 @@ class MainProcess {
         if (process.platform === 'darwin' && appIconPath) {
             electron_1.app.dock.setIcon(appIconPath);
         }
-        this.managementWindow.loadFile(path.join(__dirname, 'renderer/manage.html'));
+        this.managementWindow.loadFile(path.join(__dirname, 'renderer/options.html'));
         this.managementWindow.once('ready-to-show', () => {
             if (this.managementWindow) {
                 this.managementWindow.setMenuBarVisibility(true);
