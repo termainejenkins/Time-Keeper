@@ -8,6 +8,7 @@ console.log('Manage.tsx loaded!');
 const sections = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'hud', label: 'HUD Options' },
+  { key: 'startup', label: 'Startup' },
   { key: 'updates', label: 'Updates' },
   { key: 'archive', label: 'Archive' },
   { key: 'about', label: 'About' },
@@ -549,98 +550,63 @@ const App: React.FC = () => {
                 Reset to Defaults
               </button>
             </div>
-            <div style={{ marginTop: 40, borderTop: '1px solid #eee', paddingTop: 24 }}>
-              <h3 style={{ fontWeight: 600, fontSize: 18, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Startup Options</h3>
-              <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, maxWidth: 400 }}>
-                <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                  <input
-                    type="checkbox"
-                    checked={startupSettings.autoStart}
-                    onChange={e => handleStartupSettingsChange({ ...startupSettings, autoStart: e.target.checked })}
-                  />
-                  Enable scheduled startup
-                </label>
-                {startupSettings.autoStart && (
-                  <>
-                    <div style={{ marginBottom: 18, paddingLeft: 24 }}>
-                      <label style={{ display: 'block', marginBottom: 8 }}>Start Time:</label>
-                      <input
-                        type="time"
-                        value={startupSettings.startTime}
-                        onChange={e => handleStartupSettingsChange({ ...startupSettings, startTime: e.target.value })}
-                        style={{ padding: '4px 8px', borderRadius: 4 }}
-                      />
-                    </div>
-                    <div style={{ marginBottom: 18, paddingLeft: 24 }}>
-                      <label style={{ display: 'block', marginBottom: 8 }}>Start Days:</label>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
-                          <label key={day} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <input
-                              type="checkbox"
-                              checked={startupSettings.startDays.includes(day)}
-                              onChange={e => {
-                                const newDays = e.target.checked
-                                  ? [...startupSettings.startDays, day]
-                                  : startupSettings.startDays.filter(d => d !== day);
-                                handleStartupSettingsChange({ ...startupSettings, startDays: newDays });
-                              }}
-                            />
-                            {day.charAt(0).toUpperCase() + day.slice(1)}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-                <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                  <input
-                    type="checkbox"
-                    checked={startupSettings.startWithWindows}
-                    onChange={e => handleStartupSettingsChange({ ...startupSettings, startWithWindows: e.target.checked })}
-                  />
-                  Start with Windows
-                </label>
-              </div>
-            </div>
-            {/* Live preview */}
-            <div
-              style={{
-                marginTop: 40,
-                background: hudSettings.darkMode ? 'rgba(30,34,40,0.95)' : `rgba(0,0,0,${hudSettings.opacity})`,
-                borderRadius: 10,
-                boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                padding: 24,
-                color: hudSettings.darkMode ? '#f3f3f3' : '#fff',
-                minHeight: 80,
-                maxWidth: 340,
-                fontSize: 18,
-                fontWeight: 500,
-                letterSpacing: 0.2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                border: hudSettings.showBorder ? `2px solid ${getPreviewBorderColor()}` : 'none',
-                transition: 'background 0.2s, color 0.2s, border 0.2s',
-              }}
-            >
-              <span style={{ fontWeight: 700, fontSize: 20, marginBottom: 6, color: hudSettings.darkMode ? '#b3d1f7' : '#cce6ff' }}>HUD Preview</span>
-              <span style={{ fontSize: 16, color: hudSettings.darkMode ? '#b3d1f7' : '#cce6ff' }}>Current Task: <b style={{ color: hudSettings.darkMode ? '#fff' : '#fff' }}>Example Task</b></span>
-              {hudSettings.showCurrentTime && (
-                <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>12:34:56 PM</span>
-              )}
-              {hudSettings.previewAnimation && (
-                <span style={{ fontSize: 15, color: hudSettings.darkMode ? '#eee' : '#e0e0e0', marginTop: 4 }}>
-                  ({Math.floor(previewTimeLeft / 1000)} seconds left)
-                </span>
-              )}
-              {hudSettings.dynamicBorderColor && (
-                <span style={{ fontSize: 12, color: hudSettings.darkMode ? '#aaa' : '#888', marginTop: 8 }}>
-                  {isPreviewAnimating ? 'Previewing dynamic colors...' : 'Dynamic colors enabled'}
-                </span>
-              )}
-            </div>
           </>
+        )}
+        {selected === 'startup' && (
+          <div>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>
+              Startup Options
+            </h2>
+            <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, maxWidth: 400 }}>
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={startupSettings.autoStart}
+                  onChange={e => handleStartupSettingsChange({ ...startupSettings, autoStart: e.target.checked })}
+                />
+                Enable scheduled startup
+              </label>
+              {startupSettings.autoStart && (
+                <>
+                  <div style={{ marginLeft: 24, marginBottom: 18 }}>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Start Time:</label>
+                    <input
+                      type="time"
+                      value={startupSettings.startTime}
+                      onChange={e => handleStartupSettingsChange({ ...startupSettings, startTime: e.target.value })}
+                      style={{ padding: '4px 8px', borderRadius: 4 }}
+                    />
+                  </div>
+                  <div style={{ marginLeft: 24, marginBottom: 18 }}>
+                    <label style={{ display: 'block', marginBottom: 8 }}>Start Days:</label>
+                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+                      <label key={day} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={startupSettings.startDays.includes(day)}
+                          onChange={e => {
+                            const newDays = e.target.checked
+                              ? [...startupSettings.startDays, day]
+                              : startupSettings.startDays.filter(d => d !== day);
+                            handleStartupSettingsChange({ ...startupSettings, startDays: newDays });
+                          }}
+                        />
+                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={startupSettings.startWithWindows}
+                  onChange={e => handleStartupSettingsChange({ ...startupSettings, startWithWindows: e.target.checked })}
+                />
+                Start with Windows
+              </label>
+            </div>
+          </div>
         )}
         {selected === 'updates' && (
           <>
