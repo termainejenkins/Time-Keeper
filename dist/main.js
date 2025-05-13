@@ -369,7 +369,7 @@ class MainProcess {
                 width: 320,
                 height: 100,
                 x: width - 340,
-                y: 20,
+                y: 0,
                 frame: false,
                 transparent: true,
                 alwaysOnTop: !!hudSettings.alwaysOnTop,
@@ -534,36 +534,36 @@ class MainProcess {
         let x = 0, y = 0;
         switch (placement) {
             case 'top-left':
-                x = 20;
-                y = 20;
+                x = 0;
+                y = 0;
                 break;
             case 'top-center':
                 x = Math.round((screenW - hudW) / 2);
-                y = 20;
+                y = 0;
                 break;
             case 'top-right':
-                x = screenW - hudW - 20;
-                y = 20;
+                x = screenW - hudW;
+                y = 0;
                 break;
             case 'bottom-left':
-                x = 20;
-                y = screenH - hudH - 20;
+                x = 0;
+                y = screenH - hudH;
                 break;
             case 'bottom-center':
                 x = Math.round((screenW - hudW) / 2);
-                y = screenH - hudH - 20;
+                y = screenH - hudH;
                 break;
             case 'bottom-right':
-                x = screenW - hudW - 20;
-                y = screenH - hudH - 20;
+                x = screenW - hudW;
+                y = screenH - hudH;
                 break;
             case 'center':
                 x = Math.round((screenW - hudW) / 2);
                 y = Math.round((screenH - hudH) / 2);
                 break;
             default:
-                x = screenW - hudW - 20;
-                y = 20;
+                x = screenW - hudW;
+                y = 0;
         }
         console.log(`[HUD] setPosition: (${x}, ${y}) for placement: ${placement}, window size: (${hudW}, ${hudH}), screen: (${screenW}, ${screenH})`);
         this.mainWindow.setPosition(x, y);

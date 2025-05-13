@@ -9,6 +9,16 @@ node_modules/
 dist/
 # build/ is an alternative build directory used by some tools
 build/
+# release/ contains packaged applications
+release/
+# out/ is used by some Electron builders
+out/
+
+# TypeScript
+# TypeScript incremental compilation cache
+*.tsbuildinfo
+# TypeScript declaration files that are generated
+*.d.ts
 
 # Debug logs
 # These files contain debugging information and error logs that are specific
@@ -16,6 +26,8 @@ build/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs/
+*.log
 
 # Environment variables
 # These files contain sensitive information like API keys and credentials
@@ -25,6 +37,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.electron
 
 # IDE and editor files
 # These are user-specific settings and temporary files created by IDEs and editors
@@ -32,4 +45,22 @@ yarn-error.log*
 .vscode/        # Visual Studio Code settings
 *.swp           # Vim swap files
 *.swo           # Vim swap files
-.DS_Store       # macOS system files 
+.DS_Store       # macOS system files
+Thumbs.db       # Windows thumbnail cache
+
+# Electron specific
+# Electron-builder output
+electron-builder.yml
+# Electron-updater cache
+.update/
+
+# Testing
+# Test coverage reports and temporary test files
+coverage/
+.nyc_output/
+
+# Temporary files
+# Various temporary files that might be created during development
+*.tmp
+*.temp
+.cache/ 

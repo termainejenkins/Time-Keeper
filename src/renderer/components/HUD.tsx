@@ -450,16 +450,17 @@ const HUD: React.FC = () => {
         position: 'relative',
         border: showBorder ? `2px solid ${borderColor}` : 'none',
         borderRadius: 8,
-        padding: '0 8px 8px 8px',
+        padding: '8px',
         transition: 'border-color 0.3s ease, opacity 0.3s ease',
-        overflow: 'hidden',
+        overflow: 'visible',
         minHeight: 'fit-content',
         display: 'flex',
         flexDirection: 'column',
         background: 'transparent',
         margin: 0,
         boxSizing: 'border-box',
-        opacity: opacity
+        opacity: opacity,
+        width: '100%'
       }}
     >
       {/* Hamburger menu button and dropdown as siblings to the HUD container */}
@@ -473,6 +474,7 @@ const HUD: React.FC = () => {
         height: 40,
         background: 'transparent',
         borderRadius: '0 8px 0 8px',
+        padding: '4px'
       }}>
         <button
           className="hud-hamburger"
@@ -629,12 +631,13 @@ const HUD: React.FC = () => {
       </div>
 
       {/* Main HUD container with pointerEvents: 'none' */}
-      <div className="hud-container" style={{ 
+      <div className="hud-container" style={{
         pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column',
         gap: 4,
-        width: '100%'
+        width: '100%',
+        padding: '4px 0'
       }}>
         <div className="current-task-prominent" style={{
           fontSize: '1.3em',
