@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
 
-console.log('Manage.tsx loaded!');
+console.log('Options.tsx loaded!');
 
 const sections = [
   { key: 'tasks', label: 'Tasks' },
