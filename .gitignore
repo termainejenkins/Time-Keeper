@@ -63,4 +63,16 @@ coverage/
 # Various temporary files that might be created during development
 *.tmp
 *.temp
-.cache/ 
+.cache/
+
+# Large binary files
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+*.dat
+
+# Application specific
+app.asar
+Time Keeper.exe 
