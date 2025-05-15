@@ -516,6 +516,35 @@ const App: React.FC = () => {
                   )}
                 </>
               )}
+              <div style={{ marginTop: 24, marginBottom: 24, padding: '16px', background: 'rgba(0, 0, 0, 0.7)', borderRadius: 8, width: 'fit-content' }}>
+                <div style={{ fontSize: 14, color: '#888', marginBottom: 8 }}>HUD Preview:</div>
+                <div style={{ 
+                  padding: '12px',
+                  border: `2px solid ${hudSettings.showBorder ? hudSettings.borderColors.normal : 'transparent'}`,
+                  borderRadius: 8,
+                  background: 'transparent',
+                  color: 'white',
+                  width: 'fit-content',
+                  transition: 'border-color 0.3s ease',
+                  opacity: hudSettings.opacity
+                }}>
+                  <div style={{ fontSize: '1.3em', fontWeight: 700, marginBottom: 4, color: '#7fa7c7', fontStyle: 'italic' }}>Idle</div>
+                  {hudSettings.showCurrentTime && (
+                    <div style={{ fontSize: '1em', color: '#666', marginTop: 4 }}>
+                      {new Date().toLocaleTimeString()}
+                    </div>
+                  )}
+                  <div style={{ 
+                    fontSize: '0.95em', 
+                    color: '#888', 
+                    marginTop: 4,
+                    paddingTop: 4,
+                    borderTop: '1px solid rgba(255,255,255,0.1)'
+                  }}>
+                    Next: Sample Task (in 30:00)
+                  </div>
+                </div>
+              </div>
               <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
                 Placement
                 <select

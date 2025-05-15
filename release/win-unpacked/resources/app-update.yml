@@ -1,4 +1,0 @@
-owner: termainejenkins
-repo: Time-Keeper
-provider: github
-updaterCacheDirName: time-keeper-updater
