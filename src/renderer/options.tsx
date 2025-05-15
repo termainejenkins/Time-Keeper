@@ -7,7 +7,7 @@ console.log('Options.tsx loaded!');
 
 const sections = [
   { key: 'tasks', label: 'Tasks' },
-  { key: 'hud', label: 'HUD Options' },
+  { key: 'hud', label: 'HUD' },
   { key: 'startup', label: 'Startup' },
   { key: 'updates', label: 'Updates' },
   { key: 'archive', label: 'Archive' },
@@ -424,7 +424,7 @@ const App: React.FC = () => {
         )}
         {selected === 'hud' && (
           <>
-            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>HUD Options</h2>
+            <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>HUD</h2>
             <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 400 }}>
               <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
                 <input type="checkbox" checked={hudSettings.darkMode} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, darkMode: e.target.checked }))} />
