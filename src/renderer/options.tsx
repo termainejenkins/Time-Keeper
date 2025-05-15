@@ -260,7 +260,7 @@ const App: React.FC = () => {
           if (prev <= 0) return 30 * 1000;
           return prev - 1000;
         });
-      }, 100); // Update every 100ms for faster preview
+      }, 1000); // Update every 1000ms for more realistic preview
     } else {
       // Reset animation state when conditions are not met
       setIsPreviewAnimating(false);

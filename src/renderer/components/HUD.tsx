@@ -736,15 +736,22 @@ const HUD: React.FC = () => {
             borderTop: '1px solid rgba(255,255,255,0.1)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            position: 'relative'
           }}>
-            Next: <span>{nextTask.title}</span>
+            Next: <span title={nextTask.title}>{nextTask.title}</span>
             {nextTask.repeat && nextTask.repeat !== 'none' && (
-              <span style={{ marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
+              <span 
+                title={`Repeats: ${formatRepeatLabel(nextTask)}`}
+                style={{ marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}
+              >
                 [{formatRepeatLabel(nextTask)}]
               </span>
             )}
-            <span style={{ marginLeft: 8, color: '#aaa', fontSize: '0.9em' }}>
+            <span 
+              title={`Starts in: ${formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0))}`}
+              style={{ marginLeft: 8, color: '#aaa', fontSize: '0.9em' }}
+            >
               (in {formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0))})
             </span>
           </div>
