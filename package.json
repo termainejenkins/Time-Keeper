@@ -29,7 +29,7 @@
     "start": "npm run build:main && electron .",
     "build:renderer": "vite build --config vite.config.ts",
     "dev": "npm run build:renderer && npm run build:main && electron .",
-    "build": "npm run build:renderer",
+    "build": "npm run build:renderer && npm run build:main",
     "package": "npm run build && electron-builder",
     "preview:renderer": "vite preview --config vite.config.ts",
     "test": "jest",
