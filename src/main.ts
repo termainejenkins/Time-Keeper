@@ -360,7 +360,10 @@ class MainProcess {
           nodeIntegration: false,
           contextIsolation: true,
           preload: path.join(__dirname, 'preload.js')
-        }
+        },
+        hasShadow: false,
+        skipTaskbar: true,
+        show: false
       });
       // Set dock icon for macOS
       if (process.platform === 'darwin' && appIconPath && app.dock) {
