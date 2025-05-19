@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { LocalTask, CustomRepeatSettings, WeekdayRepeatSettings } from '../../shared/types/task';
 import { IpcRendererEvent } from 'electron';
+import ScaledText from './ScaledText';
 
 const DAY_ABBREVIATIONS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -18,6 +19,7 @@ interface HudSettings {
   height: number;
   fontSize: number;
   padding: number;
+  showCurrentTime: boolean;
 }
 
 const HUD: React.FC = () => {
@@ -39,9 +41,6 @@ const HUD: React.FC = () => {
   const [borderColor, setBorderColor] = useState('#4fa3e3');
   const menuRef = useRef<HTMLDivElement>(null);
   const ipcRenderer = (window as any).require?.('electron')?.ipcRenderer;
-  const [titleScale, setTitleScale] = useState(1);
-  const titleRef = useRef<HTMLSpanElement>(null);
-  const [opacity, setOpacity] = useState(0.85);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -49,6 +48,7 @@ const HUD: React.FC = () => {
   const [height, setHeight] = useState(100);
   const [fontSize, setFontSize] = useState(18);
   const [padding, setPadding] = useState(12);
+  const [opacity, setOpacity] = useState(0.85);
 
   // Calculate border color based on time left
   const calculateBorderColor = (timeLeft: number | null) => {
@@ -67,25 +67,18 @@ const HUD: React.FC = () => {
 
   // Load HUD settings from localStorage on mount
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('hudSettings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings) as HudSettings;
-        setOpacity(settings.opacity ?? 0.85);
-        setShowBorder(settings.showBorder ?? true);
-        setDynamicBorderColor(settings.dynamicBorderColor ?? true);
-        setBorderColors(settings.borderColors ?? {
-          normal: '#4fa3e3',
-          warning: '#ffa726',
-          critical: '#ef5350'
-        });
-        setWidth(settings.width ?? 320);
-        setHeight(settings.height ?? 100);
-        setFontSize(settings.fontSize ?? 18);
-        setPadding(settings.padding ?? 12);
-      }
-    } catch (error) {
-      console.error('Error loading HUD settings:', error);
+    const savedSettings = localStorage.getItem('hudSettings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      if (settings.opacity !== undefined) setOpacity(settings.opacity);
+      if (settings.showBorder !== undefined) setShowBorder(settings.showBorder);
+      if (settings.borderColors) setBorderColors(settings.borderColors);
+      if (settings.dynamicBorderColor !== undefined) setDynamicBorderColor(settings.dynamicBorderColor);
+      if (settings.showCurrentTime !== undefined) setShowCurrentTime(settings.showCurrentTime);
+      if (settings.width !== undefined) setWidth(settings.width);
+      if (settings.height !== undefined) setHeight(settings.height);
+      if (settings.fontSize !== undefined) setFontSize(settings.fontSize);
+      if (settings.padding !== undefined) setPadding(settings.padding);
     }
   }, []);
 
@@ -93,27 +86,23 @@ const HUD: React.FC = () => {
   useEffect(() => {
     if (!ipcRenderer) return;
 
-    const handleSettingsUpdate = (_event: IpcRendererEvent, settings: Partial<HudSettings>) => {
-      try {
-        if (typeof settings.opacity === 'number') setOpacity(settings.opacity);
-        if (typeof settings.showBorder === 'boolean') setShowBorder(settings.showBorder);
-        if (typeof settings.dynamicBorderColor === 'boolean') setDynamicBorderColor(settings.dynamicBorderColor);
-        if (settings.borderColors) setBorderColors(settings.borderColors);
-        if (typeof settings.width === 'number') setWidth(settings.width);
-        if (typeof settings.height === 'number') setHeight(settings.height);
-        if (typeof settings.fontSize === 'number') setFontSize(settings.fontSize);
-        if (typeof settings.padding === 'number') setPadding(settings.padding);
-      } catch (error) {
-        console.error('Error updating HUD settings:', error);
-      }
+    const handleHudSettingsUpdate = (_event: IpcRendererEvent, settings: any) => {
+      if (settings.opacity !== undefined) setOpacity(settings.opacity);
+      if (settings.showBorder !== undefined) setShowBorder(settings.showBorder);
+      if (settings.borderColors) setBorderColors(settings.borderColors);
+      if (settings.dynamicBorderColor !== undefined) setDynamicBorderColor(settings.dynamicBorderColor);
+      if (settings.showCurrentTime !== undefined) setShowCurrentTime(settings.showCurrentTime);
+      if (settings.width !== undefined) setWidth(settings.width);
+      if (settings.height !== undefined) setHeight(settings.height);
+      if (settings.fontSize !== undefined) setFontSize(settings.fontSize);
+      if (settings.padding !== undefined) setPadding(settings.padding);
     };
 
-    ipcRenderer.on('hud-settings-update', handleSettingsUpdate);
-    
+    ipcRenderer.on('hud-settings-update', handleHudSettingsUpdate);
     return () => {
-      ipcRenderer.removeListener('hud-settings-update', handleSettingsUpdate);
+      ipcRenderer.removeListener('hud-settings-update', handleHudSettingsUpdate);
     };
-  }, []);
+  }, [ipcRenderer]);
 
   // Place getCurrentAndNextTask function here (above useEffect)
   const getCurrentAndNextTask = (tasks: LocalTask[], now: Date) => {
@@ -432,34 +421,6 @@ const HUD: React.FC = () => {
     }
   };
 
-  // Add this new function to handle text scaling
-  const adjustTitleScale = () => {
-    if (!titleRef.current || !currentTask) return;
-    
-    const container = titleRef.current.parentElement;
-    if (!container) return;
-
-    const containerWidth = container.clientWidth;
-    const titleWidth = titleRef.current.scrollWidth;
-    
-    if (titleWidth > containerWidth) {
-      const scale = Math.max(0.7, containerWidth / titleWidth);
-      setTitleScale(scale);
-    } else {
-      setTitleScale(1);
-    }
-  };
-
-  // Adjust title scale when current task changes or window resizes
-  useEffect(() => {
-    adjustTitleScale();
-    const handleResize = () => {
-      adjustTitleScale();
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [currentTask]);
-
   // Add ResizeObserver to handle dynamic content sizing
   useEffect(() => {
     if (!contentRef.current) return;
@@ -501,171 +462,46 @@ const HUD: React.FC = () => {
         height: `${height}px`
       }}
     >
-      {/* Hamburger menu button and dropdown as siblings to the HUD container */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        zIndex: 100,
-        pointerEvents: 'auto',
-        width: 40,
-        height: 40,
-        background: 'transparent',
-        borderRadius: '0 8px 0 8px',
-        padding: '4px'
-      }}>
+      {/* Menu with pointerEvents: 'auto' */}
+      <div 
+        ref={menuRef}
+        className="hud-menu" 
+        style={{
+          pointerEvents: 'auto',
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          zIndex: 1000,
+          display: 'flex',
+          gap: '4px',
+          padding: '4px',
+          background: 'rgba(0, 0, 0, 0.1)',
+          borderRadius: '0 0 0 8px',
+          backdropFilter: 'blur(4px)',
+          borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}
+      >
         <button
-          className="hud-hamburger"
+          onClick={() => setMenuOpen((v) => !v)}
+          title="Menu"
+          aria-label="Menu"
           style={{
-            width: 32,
-            height: 32,
-            background: 'transparent',
+            background: 'none',
             border: 'none',
-            borderRadius: 6,
+            color: '#666',
             cursor: 'pointer',
+            padding: '4px',
+            borderRadius: '4px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            pointerEvents: 'auto',
-            // @ts-ignore
-            'WebkitAppRegion': 'no-drag',
+            transition: 'all 0.2s ease',
+            fontSize: '14px'
           }}
-          onClick={() => setMenuOpen((v) => !v)}
-          onMouseEnter={() => {
-            if (ipcRenderer) ipcRenderer.invoke('set-hud-click-through', false);
-          }}
-          onMouseLeave={() => {
-            if (ipcRenderer && !menuOpen) ipcRenderer.invoke('set-hud-click-through', clickThrough);
-          }}
-          aria-label="Menu"
         >
-          <span style={{ display: 'block', width: 20, height: 2, background: '#333', borderRadius: 1, marginBottom: 4 }} />
-          <span style={{ display: 'block', width: 20, height: 2, background: '#333', borderRadius: 1, marginBottom: 4 }} />
-          <span style={{ display: 'block', width: 20, height: 2, background: '#333', borderRadius: 1 }} />
+          Menu
         </button>
-        {menuOpen && (
-          <div
-            ref={menuRef}
-            className="hud-menu-dropdown"
-            style={{
-              position: 'absolute',
-              top: 36,
-              right: 0,
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: 8,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-              zIndex: 200,
-              minWidth: 180,
-              padding: 0,
-              pointerEvents: 'auto',
-            }}
-          >
-            <label style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={clickThrough}
-                onChange={e => setClickThrough(e.target.checked)}
-                style={{ marginRight: 8 }}
-              />
-              Enable Click-Through
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={showCurrentTime}
-                onChange={e => setShowCurrentTime(e.target.checked)}
-                style={{ marginRight: 8 }}
-              />
-              Show Current Time
-            </label>
-            <div style={{ borderTop: '1px solid #eee' }} />
-            <label style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={showBorder}
-                onChange={e => setShowBorder(e.target.checked)}
-                style={{ marginRight: 8 }}
-              />
-              Show Border
-            </label>
-            {showBorder && (
-              <>
-                <label style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: 15, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={dynamicBorderColor}
-                    onChange={e => setDynamicBorderColor(e.target.checked)}
-                    style={{ marginRight: 8 }}
-                  />
-                  Dynamic Border Color
-                </label>
-                {dynamicBorderColor && (
-                  <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
-                    <div style={{ marginBottom: 8 }}>
-                      <label style={{ display: 'block', marginBottom: 4 }}>Normal Color:</label>
-                      <input
-                        type="color"
-                        value={borderColors.normal}
-                        onChange={e => setBorderColors(prev => ({ ...prev, normal: e.target.value }))}
-                        style={{ width: '100%', height: 24 }}
-                      />
-                    </div>
-                    <div style={{ marginBottom: 8 }}>
-                      <label style={{ display: 'block', marginBottom: 4 }}>Warning Color (≤15min):</label>
-                      <input
-                        type="color"
-                        value={borderColors.warning}
-                        onChange={e => setBorderColors(prev => ({ ...prev, warning: e.target.value }))}
-                        style={{ width: '100%', height: 24 }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: 4 }}>Critical Color (≤5min):</label>
-                      <input
-                        type="color"
-                        value={borderColors.critical}
-                        onChange={e => setBorderColors(prev => ({ ...prev, critical: e.target.value }))}
-                        style={{ width: '100%', height: 24 }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-            <div style={{ borderTop: '1px solid #eee' }} />
-            <button
-              style={{
-                width: '100%',
-                padding: '10px 16px',
-                background: 'none',
-                border: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: 15,
-              }}
-              onClick={() => handleMenuClick('manage')}
-            >
-              Options
-            </button>
-            <div style={{ borderTop: '1px solid #eee' }} />
-            <button
-              style={{
-                width: '100%',
-                padding: '10px 16px',
-                background: 'none',
-                border: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                color: '#c00',
-                fontSize: 15,
-              }}
-              onClick={() => handleMenuClick('quit')}
-            >
-              Quit
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Main HUD container with pointerEvents: 'none' */}
@@ -685,40 +521,30 @@ const HUD: React.FC = () => {
         }}
       >
         <div className="current-task-prominent" style={{
-          fontSize: `${fontSize * 1.33}px`,
-          fontWeight: 700,
-          color: currentTask ? '#4fa3e3' : '#7fa7c7',
-          textShadow: '0 1px 4px rgba(0,0,0,0.10)',
-          marginBottom: 0,
           textAlign: 'center',
           width: '100%',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
+          marginBottom: 0,
         }}>
           {currentTask ? (
             <>
-              Now: <span 
-                ref={titleRef}
+              Now: <ScaledText
+                text={currentTask.title}
+                fontSize={fontSize * 1.33}
+                fontWeight={700}
+                color={currentTask ? '#4fa3e3' : '#7fa7c7'}
                 style={{
                   textDecoration: 'underline',
-                  display: 'inline-block',
-                  transform: `scale(${titleScale})`,
-                  transformOrigin: 'center',
-                  transition: 'transform 0.2s ease-out',
-                  maxWidth: 'calc(100% - 100px)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  textShadow: '0 1px 4px rgba(0,0,0,0.10)',
                 }}
-              >
-                {currentTask.title}
-              </span>
+                maxWidth={width - 100}
+                scaleFactor={1}
+                minScale={0.7}
+              />
               {currentTask.repeat && currentTask.repeat !== 'none' && (
                 <span style={{ 
                   marginLeft: 8, 
                   color: '#888', 
-                  fontSize: '0.7em', 
+                  fontSize: `${fontSize * 0.7}px`, 
                   whiteSpace: 'nowrap', 
                   verticalAlign: 'middle', 
                   lineHeight: 1,
@@ -732,18 +558,18 @@ const HUD: React.FC = () => {
             <span style={{ fontStyle: 'italic', color: '#7fa7c7' }}>Idle</span>
           )}
         </div>
-        <div className="current-task-timer" style={{ fontSize: '1em', color: '#666', textAlign: 'center', marginBottom: 0 }}>
+        <div className="current-task-timer" style={{ fontSize: `${fontSize}px`, color: '#666', textAlign: 'center', marginBottom: 0 }}>
           {currentTask ? `(${formatTimeHMS(timeLeft)} left)` : ''}
         </div>
         {showCurrentTime && (
-          <div className="current-time" style={{ fontSize: '1em', fontWeight: 500, marginBottom: 0 }}>
+          <div className="current-time" style={{ fontSize: `${fontSize}px`, fontWeight: 500, marginBottom: 0 }}>
             {currentTime?.toLocaleTimeString()}
           </div>
         )}
         {/* Only show one next task, never a list */}
         {nextTask && (
           <div className="next-event" style={{ 
-            fontSize: '0.95em', 
+            fontSize: `${fontSize * 0.95}px`, 
             color: '#888', 
             textAlign: 'center', 
             opacity: 0.7, 
@@ -754,13 +580,20 @@ const HUD: React.FC = () => {
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}>
-            Next: <span>{nextTask.title}</span>
+            Next: <ScaledText
+              text={nextTask.title}
+              fontSize={fontSize * 0.95}
+              color="#888"
+              maxWidth={width - 150}
+              scaleFactor={1}
+              minScale={0.8}
+            />
             {nextTask.repeat && nextTask.repeat !== 'none' && (
-              <span style={{ marginLeft: 8, color: '#bbb', fontSize: '0.7em', whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
+              <span style={{ marginLeft: 8, color: '#bbb', fontSize: `${fontSize * 0.7}px`, whiteSpace: 'nowrap', verticalAlign: 'middle', lineHeight: 1 }}>
                 [{formatRepeatLabel(nextTask)}]
               </span>
             )}
-            <span style={{ marginLeft: 8, color: '#aaa', fontSize: '0.9em' }}>
+            <span style={{ marginLeft: 8, color: '#aaa', fontSize: `${fontSize * 0.9}px` }}>
               (in {formatTime(nextTask && !currentTask ? timeLeft : (nextTask ? (new Date(nextTask.start).getTime() - (currentTime ? currentTime.getTime() : 0)) : 0))})
             </span>
           </div>
