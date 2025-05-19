@@ -29,7 +29,11 @@ const defaultHudSettings = {
     warning: '#ffa726',
     critical: '#ef5350'
   },
-  previewAnimation: false
+  previewAnimation: false,
+  width: 320,
+  height: 100,
+  fontSize: 18,
+  padding: 12
 };
 
 const defaultStartupSettings = {
@@ -605,6 +609,122 @@ const App: React.FC = () => {
                 <span style={{ width: 40, textAlign: 'right', color: hudSettings.darkMode ? '#b3b3b3' : '#888', fontSize: 15 }}>
                   {Math.round(hudSettings.opacity * 100)}%
                 </span>
+              </div>
+              {/* Size Controls */}
+              <div style={{ borderTop: '1px solid #ddd', paddingTop: '16px', marginTop: '8px' }}>
+                <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>Size Controls</h3>
+                
+                {/* Width Control */}
+                <div style={{ marginBottom: 16 }}>
+                  <label htmlFor="width-select" style={{ display: 'block', marginBottom: 8 }}>Width</label>
+                  <select
+                    id="width-select"
+                    value={hudSettings.width}
+                    onChange={e => setHudSettings({ ...hudSettings, width: Number(e.target.value) })}
+                    style={{ marginRight: 12, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="HUD width"
+                  >
+                    <option value="240">Small (240px)</option>
+                    <option value="320">Medium (320px)</option>
+                    <option value="400">Large (400px)</option>
+                    <option value="480">Extra Large (480px)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={hudSettings.width}
+                    onChange={e => setHudSettings({ ...hudSettings, width: Number(e.target.value) })}
+                    min="200"
+                    max="800"
+                    step="10"
+                    style={{ width: 80, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="Custom width"
+                  />
+                  <span style={{ marginLeft: 8, color: hudSettings.darkMode ? '#b3b3b3' : '#666' }}>px</span>
+                </div>
+
+                {/* Height Control */}
+                <div style={{ marginBottom: 16 }}>
+                  <label htmlFor="height-select" style={{ display: 'block', marginBottom: 8 }}>Height</label>
+                  <select
+                    id="height-select"
+                    value={hudSettings.height}
+                    onChange={e => setHudSettings({ ...hudSettings, height: Number(e.target.value) })}
+                    style={{ marginRight: 12, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="HUD height"
+                  >
+                    <option value="80">Small (80px)</option>
+                    <option value="100">Medium (100px)</option>
+                    <option value="120">Large (120px)</option>
+                    <option value="160">Extra Large (160px)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={hudSettings.height}
+                    onChange={e => setHudSettings({ ...hudSettings, height: Number(e.target.value) })}
+                    min="60"
+                    max="300"
+                    step="10"
+                    style={{ width: 80, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="Custom height"
+                  />
+                  <span style={{ marginLeft: 8, color: hudSettings.darkMode ? '#b3b3b3' : '#666' }}>px</span>
+                </div>
+
+                {/* Font Size Control */}
+                <div style={{ marginBottom: 16 }}>
+                  <label htmlFor="font-size" style={{ display: 'block', marginBottom: 8 }}>Font Size</label>
+                  <select
+                    id="font-size"
+                    value={hudSettings.fontSize}
+                    onChange={e => setHudSettings({ ...hudSettings, fontSize: Number(e.target.value) })}
+                    style={{ marginRight: 12, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="Font size"
+                  >
+                    <option value="14">Small (14px)</option>
+                    <option value="18">Medium (18px)</option>
+                    <option value="22">Large (22px)</option>
+                    <option value="26">Extra Large (26px)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={hudSettings.fontSize}
+                    onChange={e => setHudSettings({ ...hudSettings, fontSize: Number(e.target.value) })}
+                    min="12"
+                    max="36"
+                    step="1"
+                    style={{ width: 80, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="Custom font size"
+                  />
+                  <span style={{ marginLeft: 8, color: hudSettings.darkMode ? '#b3b3b3' : '#666' }}>px</span>
+                </div>
+
+                {/* Padding Control */}
+                <div style={{ marginBottom: 16 }}>
+                  <label htmlFor="padding" style={{ display: 'block', marginBottom: 8 }}>Padding</label>
+                  <select
+                    id="padding"
+                    value={hudSettings.padding}
+                    onChange={e => setHudSettings({ ...hudSettings, padding: Number(e.target.value) })}
+                    style={{ marginRight: 12, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="Padding"
+                  >
+                    <option value="8">Small (8px)</option>
+                    <option value="12">Medium (12px)</option>
+                    <option value="16">Large (16px)</option>
+                    <option value="24">Extra Large (24px)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={hudSettings.padding}
+                    onChange={e => setHudSettings({ ...hudSettings, padding: Number(e.target.value) })}
+                    min="4"
+                    max="40"
+                    step="2"
+                    style={{ width: 80, padding: '4px 8px', borderRadius: 4 }}
+                    aria-label="Custom padding"
+                  />
+                  <span style={{ marginLeft: 8, color: hudSettings.darkMode ? '#b3b3b3' : '#666' }}>px</span>
+                </div>
               </div>
               <button
                 onClick={handleReset}

@@ -13,6 +13,10 @@ interface HUDPreviewProps {
       warning: string;
       critical: string;
     };
+    width: number;
+    height: number;
+    fontSize: number;
+    padding: number;
   };
 }
 
@@ -45,8 +49,8 @@ const HUDPreview: React.FC<HUDPreviewProps> = ({ settings }) => {
 
   return (
     <div style={{
-      width: '320px',
-      height: '100px',
+      width: `${settings.width}px`,
+      height: `${settings.height}px`,
       position: 'relative',
       margin: '20px auto',
       borderRadius: '8px',
@@ -61,7 +65,7 @@ const HUDPreview: React.FC<HUDPreviewProps> = ({ settings }) => {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         style={{
-          padding: '12px',
+          padding: `${settings.padding}px`,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -71,7 +75,7 @@ const HUDPreview: React.FC<HUDPreviewProps> = ({ settings }) => {
       >
         {settings.showCurrentTime && (
           <div style={{
-            fontSize: '24px',
+            fontSize: `${settings.fontSize * 1.33}px`,
             fontWeight: 'bold',
             marginBottom: '8px',
           }}>
@@ -79,7 +83,7 @@ const HUDPreview: React.FC<HUDPreviewProps> = ({ settings }) => {
           </div>
         )}
         <div style={{
-          fontSize: '18px',
+          fontSize: `${settings.fontSize}px`,
           opacity: 0.9,
         }}>
           Next event in: {formatTime(timeLeft)}

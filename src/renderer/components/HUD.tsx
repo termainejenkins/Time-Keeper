@@ -14,6 +14,10 @@ interface HudSettings {
     warning: string;
     critical: string;
   };
+  width: number;
+  height: number;
+  fontSize: number;
+  padding: number;
 }
 
 const HUD: React.FC = () => {
@@ -41,6 +45,10 @@ const HUD: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState<number>(0);
+  const [width, setWidth] = useState(320);
+  const [height, setHeight] = useState(100);
+  const [fontSize, setFontSize] = useState(18);
+  const [padding, setPadding] = useState(12);
 
   // Calculate border color based on time left
   const calculateBorderColor = (timeLeft: number | null) => {
@@ -71,6 +79,10 @@ const HUD: React.FC = () => {
           warning: '#ffa726',
           critical: '#ef5350'
         });
+        setWidth(settings.width ?? 320);
+        setHeight(settings.height ?? 100);
+        setFontSize(settings.fontSize ?? 18);
+        setPadding(settings.padding ?? 12);
       }
     } catch (error) {
       console.error('Error loading HUD settings:', error);
@@ -87,6 +99,10 @@ const HUD: React.FC = () => {
         if (typeof settings.showBorder === 'boolean') setShowBorder(settings.showBorder);
         if (typeof settings.dynamicBorderColor === 'boolean') setDynamicBorderColor(settings.dynamicBorderColor);
         if (settings.borderColors) setBorderColors(settings.borderColors);
+        if (typeof settings.width === 'number') setWidth(settings.width);
+        if (typeof settings.height === 'number') setHeight(settings.height);
+        if (typeof settings.fontSize === 'number') setFontSize(settings.fontSize);
+        if (typeof settings.padding === 'number') setPadding(settings.padding);
       } catch (error) {
         console.error('Error updating HUD settings:', error);
       }
@@ -472,7 +488,7 @@ const HUD: React.FC = () => {
         position: 'relative',
         border: showBorder ? `2px solid ${borderColor}` : 'none',
         borderRadius: 8,
-        padding: '12px',
+        padding: `${padding}px`,
         transition: 'border-color 0.3s ease, opacity 0.3s ease',
         overflow: 'hidden',
         display: 'flex',
@@ -481,8 +497,8 @@ const HUD: React.FC = () => {
         margin: 0,
         boxSizing: 'border-box',
         opacity: opacity,
-        width: '100%',
-        maxWidth: '100%'
+        width: `${width}px`,
+        height: `${height}px`
       }}
     >
       {/* Hamburger menu button and dropdown as siblings to the HUD container */}
@@ -669,7 +685,7 @@ const HUD: React.FC = () => {
         }}
       >
         <div className="current-task-prominent" style={{
-          fontSize: '1.3em',
+          fontSize: `${fontSize * 1.33}px`,
           fontWeight: 700,
           color: currentTask ? '#4fa3e3' : '#7fa7c7',
           textShadow: '0 1px 4px rgba(0,0,0,0.10)',
