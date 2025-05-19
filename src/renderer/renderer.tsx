@@ -91,4 +91,14 @@ const HUD: React.FC = () => {
           </>
         ) : (
           <div className="placeholder">No data available. Waiting for events...</div>
- 
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  root.render(<HUD />);
+} 

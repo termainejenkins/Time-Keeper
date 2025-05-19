@@ -357,8 +357,9 @@ class MainProcess {
         alwaysOnTop: !!hudSettings.alwaysOnTop,
         icon: appIconPath,
         webPreferences: {
-          nodeIntegration: true,
-          contextIsolation: false
+          nodeIntegration: false,
+          contextIsolation: true,
+          preload: path.join(__dirname, 'preload.js')
         }
       });
       // Set dock icon for macOS
@@ -414,8 +415,9 @@ class MainProcess {
       fullscreen: false,
       icon: appIconPath,
       webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, 'preload.js')
       }
     });
     // Set dock icon for macOS
