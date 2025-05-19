@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
+import HUDPreview from './components/HUDPreview';
 
 console.log('Options.tsx loaded!');
 
@@ -425,39 +426,84 @@ const App: React.FC = () => {
         {selected === 'hud' && (
           <>
             <h2 style={{ fontWeight: 700, fontSize: 24, marginBottom: 16, color: hudSettings.darkMode ? '#f3f3f3' : '#222' }}>HUD Options</h2>
-            <div style={{ color: hudSettings.darkMode ? '#f3f3f3' : '#222', fontSize: 16, marginTop: 24, maxWidth: 400 }}>
-              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                <input type="checkbox" checked={hudSettings.darkMode} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, darkMode: e.target.checked }))} />
-                Dark mode
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                <input type="checkbox" checked={hudSettings.showCurrentTime} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, showCurrentTime: e.target.checked }))} />
-                Show current time
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                <input type="checkbox" checked={hudSettings.clickThrough} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, clickThrough: e.target.checked }))} />
-                Enable click-through
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                <input type="checkbox" checked={hudSettings.alwaysOnTop} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, alwaysOnTop: e.target.checked }))} />
-                Always on Top
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                <input type="checkbox" checked={hudSettings.showBorder} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, showBorder: e.target.checked }))} />
-                Show Border
-              </label>
+            <div style={{ marginBottom: '20px' }}>
+              <HUDPreview settings={hudSettings} />
+            </div>
+            <div style={{ display: 'grid', gap: '16px' }}>
+              <div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={hudSettings.darkMode}
+                    onChange={(e) => setHudSettings({ ...hudSettings, darkMode: e.target.checked })}
+                  />
+                  Dark Mode
+                </label>
+              </div>
+              <div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={hudSettings.showCurrentTime}
+                    onChange={(e) => setHudSettings({ ...hudSettings, showCurrentTime: e.target.checked })}
+                  />
+                  Show current time
+                </label>
+              </div>
+              <div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={hudSettings.clickThrough}
+                    onChange={(e) => setHudSettings({ ...hudSettings, clickThrough: e.target.checked })}
+                  />
+                  Enable click-through
+                </label>
+              </div>
+              <div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={hudSettings.alwaysOnTop}
+                    onChange={(e) => setHudSettings({ ...hudSettings, alwaysOnTop: e.target.checked })}
+                  />
+                  Always on Top
+                </label>
+              </div>
+              <div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={hudSettings.showBorder}
+                    onChange={(e) => setHudSettings({ ...hudSettings, showBorder: e.target.checked })}
+                  />
+                  Show Border
+                </label>
+              </div>
               {hudSettings.showBorder && (
                 <>
-                  <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                    <input type="checkbox" checked={hudSettings.dynamicBorderColor} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, dynamicBorderColor: e.target.checked }))} />
-                    Dynamic Border Color
-                  </label>
+                  <div>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={hudSettings.dynamicBorderColor}
+                        onChange={(e) => setHudSettings({ ...hudSettings, dynamicBorderColor: e.target.checked })}
+                      />
+                      Dynamic Border Color
+                    </label>
+                  </div>
                   {hudSettings.dynamicBorderColor && (
                     <>
-                      <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10, paddingLeft: 24 }}>
-                        <input type="checkbox" checked={hudSettings.previewAnimation} onChange={e => setHudSettings((s: HudSettings) => ({ ...s, previewAnimation: e.target.checked }))} />
-                        Enable Preview Animation
-                      </label>
+                      <div>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={hudSettings.previewAnimation}
+                            onChange={(e) => setHudSettings({ ...hudSettings, previewAnimation: e.target.checked })}
+                          />
+                          Enable Preview Animation
+                        </label>
+                      </div>
                       {hudSettings.previewAnimation && (
                         <div style={{ 
                           marginLeft: 24, 
@@ -476,39 +522,45 @@ const App: React.FC = () => {
                       )}
                       <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
                         <div style={{ marginBottom: 8 }}>
-                          <label style={{ display: 'block', marginBottom: 4 }}>Normal Color:</label>
+                          <label htmlFor="normal-color">Normal Color</label>
                           <input
+                            id="normal-color"
                             type="color"
                             value={hudSettings.borderColors.normal}
-                            onChange={e => setHudSettings((s: HudSettings) => ({ 
-                              ...s, 
-                              borderColors: { ...s.borderColors, normal: e.target.value }
-                            }))}
+                            onChange={e => setHudSettings({ 
+                              ...hudSettings, 
+                              borderColors: { ...hudSettings.borderColors, normal: e.target.value }
+                            })}
                             style={{ width: '100%', height: 24 }}
+                            aria-label="Normal border color"
                           />
                         </div>
                         <div style={{ marginBottom: 8 }}>
-                          <label style={{ display: 'block', marginBottom: 4 }}>Warning Color (≤15min):</label>
+                          <label htmlFor="warning-color">Warning Color</label>
                           <input
+                            id="warning-color"
                             type="color"
                             value={hudSettings.borderColors.warning}
-                            onChange={e => setHudSettings((s: HudSettings) => ({ 
-                              ...s, 
-                              borderColors: { ...s.borderColors, warning: e.target.value }
-                            }))}
+                            onChange={e => setHudSettings({ 
+                              ...hudSettings, 
+                              borderColors: { ...hudSettings.borderColors, warning: e.target.value }
+                            })}
                             style={{ width: '100%', height: 24 }}
+                            aria-label="Warning border color"
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: 4 }}>Critical Color (≤5min):</label>
+                          <label htmlFor="critical-color">Critical Color</label>
                           <input
+                            id="critical-color"
                             type="color"
                             value={hudSettings.borderColors.critical}
-                            onChange={e => setHudSettings((s: HudSettings) => ({ 
-                              ...s, 
-                              borderColors: { ...s.borderColors, critical: e.target.value }
-                            }))}
+                            onChange={e => setHudSettings({ 
+                              ...hudSettings, 
+                              borderColors: { ...hudSettings.borderColors, critical: e.target.value }
+                            })}
                             style={{ width: '100%', height: 24 }}
+                            aria-label="Critical border color"
                           />
                         </div>
                       </div>
@@ -516,15 +568,17 @@ const App: React.FC = () => {
                   )}
                 </>
               )}
-              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                Placement
+              <div>
+                <label htmlFor="placement-select">Placement</label>
                 <select
+                  id="placement-select"
                   value={hudSettings.placement}
                   onChange={e => {
                     console.log('[Renderer] Placement changed to:', e.target.value);
-                    setHudSettings((s: HudSettings) => ({ ...s, placement: e.target.value }));
+                    setHudSettings({ ...hudSettings, placement: e.target.value });
                   }}
                   style={{ marginLeft: 12 }}
+                  aria-label="HUD placement"
                 >
                   <option value="top-left">Top Left</option>
                   <option value="top-center">Top Center</option>
@@ -534,20 +588,24 @@ const App: React.FC = () => {
                   <option value="bottom-right">Bottom Right</option>
                   <option value="center">Center</option>
                 </select>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', marginBottom: 18, gap: 10 }}>
-                Opacity
+              </div>
+              <div>
+                <label htmlFor="opacity-slider">Opacity</label>
                 <input
+                  id="opacity-slider"
                   type="range"
                   min={0.5}
                   max={1}
                   step={0.01}
                   value={hudSettings.opacity}
-                  onChange={e => setHudSettings((s: HudSettings) => ({ ...s, opacity: Number(e.target.value) }))}
+                  onChange={e => setHudSettings({ ...hudSettings, opacity: Number(e.target.value) })}
                   style={{ flex: 1, marginLeft: 12 }}
+                  aria-label="HUD opacity"
                 />
-                <span style={{ width: 40, textAlign: 'right', color: hudSettings.darkMode ? '#b3b3b3' : '#888', fontSize: 15 }}>{Math.round(hudSettings.opacity * 100)}%</span>
-              </label>
+                <span style={{ width: 40, textAlign: 'right', color: hudSettings.darkMode ? '#b3b3b3' : '#888', fontSize: 15 }}>
+                  {Math.round(hudSettings.opacity * 100)}%
+                </span>
+              </div>
               <button
                 onClick={handleReset}
                 style={{
