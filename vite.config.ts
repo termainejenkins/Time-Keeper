@@ -13,6 +13,11 @@ export default defineConfig({
         main: resolve(__dirname, 'src/renderer/index.html'),
         options: resolve(__dirname, 'src/renderer/options.html'),
       },
+      output: {
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[ext]'
+      }
     },
   },
   plugins: [

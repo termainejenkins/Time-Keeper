@@ -515,7 +515,7 @@ const HUD: React.FC = () => {
           gap: 0,
           width: '100%',
           padding: 0,
-          minHeight: 'fit-content',
+          height: 'fit-content',
           overflow: 'hidden',
           position: 'relative'
         }}

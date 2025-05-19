@@ -159,6 +159,13 @@ class MainProcess {
             electron_1.ipcMain.handle('tasks:update', (_event, task) => (0, local_1.updateLocalTask)(task));
             electron_1.ipcMain.handle('tasks:delete', (_event, id) => (0, local_1.deleteLocalTask)(id));
             console.log("IPC handlers for local tasks registered");
+            // Add HUD resize handler
+            electron_1.ipcMain.on('hud-resize', (_event, { width, height }) => {
+                if (this.mainWindow) {
+                    console.log(`[HUD] Resizing to: ${width}x${height}`);
+                    this.mainWindow.setContentSize(width, height, true);
+                }
+            });
             // Minimal IPC test
             electron_1.ipcMain.handle('ping', () => {
                 console.log('Received ping from renderer');
@@ -375,12 +382,16 @@ class MainProcess {
                 alwaysOnTop: !!hudSettings.alwaysOnTop,
                 icon: appIconPath,
                 webPreferences: {
-                    nodeIntegration: true,
-                    contextIsolation: false
-                }
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                    preload: path.join(__dirname, 'preload.js')
+                },
+                hasShadow: false,
+                skipTaskbar: true,
+                show: false
             });
             // Set dock icon for macOS
-            if (process.platform === 'darwin' && appIconPath) {
+            if (process.platform === 'darwin' && appIconPath && electron_1.app.dock) {
                 electron_1.app.dock.setIcon(appIconPath);
             }
             this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
@@ -432,12 +443,13 @@ class MainProcess {
             fullscreen: false,
             icon: appIconPath,
             webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: path.join(__dirname, 'preload.js')
             }
         });
         // Set dock icon for macOS
-        if (process.platform === 'darwin' && appIconPath) {
+        if (process.platform === 'darwin' && appIconPath && electron_1.app.dock) {
             electron_1.app.dock.setIcon(appIconPath);
         }
         this.managementWindow.loadFile(path.join(__dirname, 'renderer/options.html'));
