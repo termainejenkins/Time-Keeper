@@ -442,7 +442,7 @@ const App: React.FC = () => {
                     onChange={(e) => setHudSettings({ ...hudSettings, darkMode: e.target.checked })}
                   />
                   Dark Mode
-                </label>
+              </label>
               </div>
               <div>
                 <label>
@@ -451,8 +451,8 @@ const App: React.FC = () => {
                     checked={hudSettings.showCurrentTime}
                     onChange={(e) => setHudSettings({ ...hudSettings, showCurrentTime: e.target.checked })}
                   />
-                  Show current time
-                </label>
+                Show current time
+              </label>
               </div>
               <div>
                 <label>
@@ -461,8 +461,8 @@ const App: React.FC = () => {
                     checked={hudSettings.clickThrough}
                     onChange={(e) => setHudSettings({ ...hudSettings, clickThrough: e.target.checked })}
                   />
-                  Enable click-through
-                </label>
+                Enable click-through
+              </label>
               </div>
               <div>
                 <label>
@@ -471,8 +471,8 @@ const App: React.FC = () => {
                     checked={hudSettings.alwaysOnTop}
                     onChange={(e) => setHudSettings({ ...hudSettings, alwaysOnTop: e.target.checked })}
                   />
-                  Always on Top
-                </label>
+                Always on Top
+              </label>
               </div>
               <div>
                 <label>
@@ -481,8 +481,8 @@ const App: React.FC = () => {
                     checked={hudSettings.showBorder}
                     onChange={(e) => setHudSettings({ ...hudSettings, showBorder: e.target.checked })}
                   />
-                  Show Border
-                </label>
+                Show Border
+              </label>
               </div>
               {hudSettings.showBorder && (
                 <>
@@ -493,8 +493,8 @@ const App: React.FC = () => {
                         checked={hudSettings.dynamicBorderColor}
                         onChange={(e) => setHudSettings({ ...hudSettings, dynamicBorderColor: e.target.checked })}
                       />
-                      Dynamic Border Color
-                    </label>
+                    Dynamic Border Color
+                  </label>
                   </div>
                   {hudSettings.dynamicBorderColor && (
                     <>
@@ -505,8 +505,8 @@ const App: React.FC = () => {
                             checked={hudSettings.previewAnimation}
                             onChange={(e) => setHudSettings({ ...hudSettings, previewAnimation: e.target.checked })}
                           />
-                          Enable Preview Animation
-                        </label>
+                        Enable Preview Animation
+                      </label>
                       </div>
                       {hudSettings.previewAnimation && (
                         <div style={{ 
