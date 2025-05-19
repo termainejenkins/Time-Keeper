@@ -34,7 +34,7 @@ const HUD: React.FC = () => {
   });
   const [borderColor, setBorderColor] = useState('#4fa3e3');
   const menuRef = useRef<HTMLDivElement>(null);
-  const ipcRenderer = (window as any).require?.('electron')?.ipcRenderer;
+  const ipcRenderer = window.electron?.ipcRenderer;
   const [titleScale, setTitleScale] = useState(1);
   const titleRef = useRef<HTMLSpanElement>(null);
   const [opacity, setOpacity] = useState(0.85);
@@ -95,7 +95,7 @@ const HUD: React.FC = () => {
     ipcRenderer.on('hud-settings-update', handleSettingsUpdate);
     
     return () => {
-      ipcRenderer.removeListener('hud-settings-update', handleSettingsUpdate);
+      ipcRenderer.removeAllListeners('hud-settings-update');
     };
   }, []);
 
@@ -482,7 +482,8 @@ const HUD: React.FC = () => {
         boxSizing: 'border-box',
         opacity: opacity,
         width: '100%',
-        maxWidth: '100%'
+        maxWidth: '100%',
+        height: 'fit-content'
       }}
     >
       {/* Hamburger menu button and dropdown as siblings to the HUD container */}
@@ -663,7 +664,7 @@ const HUD: React.FC = () => {
           gap: 0,
           width: '100%',
           padding: 0,
-          minHeight: 'fit-content',
+          height: 'fit-content',
           overflow: 'hidden',
           position: 'relative'
         }}
