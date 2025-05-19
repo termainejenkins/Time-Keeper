@@ -80,4 +80,31 @@ This ensures Electron can always find your JS bundle and assets.
   - Better handling of task durations and intervals
 - **Note:** The HUD now correctly displays all tasks, including those with complex repeat patterns.
 
+## V8 Version Mismatch Error
+- **Problem:** When starting the app, you may see an error like:
+  ```
+  Version mismatch between V8 binary and snapshot.
+  V8 binary version: 13.6.233.8-electron.0
+  Snapshot version: 12.0.267.19-electron.0
+  ```
+- **Cause:** This typically occurs when there's a mismatch between Electron versions in your dependencies, or when the node_modules directory has become corrupted.
+- **Solution:**
+  1. Clean up the project:
+     ```bash
+     # Windows
+     Remove-Item -Recurse -Force node_modules, dist
+     
+     # Unix/Mac
+     rm -rf node_modules dist
+     ```
+  2. Reinstall dependencies:
+     ```bash
+     npm install
+     ```
+  3. Rebuild and start the app:
+     ```bash
+     npm run dev
+     ```
+- **Note:** This issue is usually resolved by a clean reinstall of dependencies. If the problem persists, check your package.json for any conflicting Electron version requirements.
+
 _Add new issues and solutions here as they are discovered!_ 
