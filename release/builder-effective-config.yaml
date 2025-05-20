@@ -10,8 +10,25 @@ files:
       - package.json
 win:
   target: nsis
+  icon: src/renderer/assets/icon.ico
+  artifactName: ${productName}-Setup-${version}.${ext}
+  publisherName: Termaine Jenkins
+  verifyUpdateCodeSignature: false
 mac:
   target: dmg
+  icon: src/renderer/assets/icon.icns
 linux:
   target: AppImage
+  icon: src/renderer/assets/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+asar: true
+asarUnpack:
+  - node_modules/7zip-bin/**/*
+extraResources:
+  - from: node_modules/7zip-bin/win/x64/7za.exe
+    to: 7zip-bin/win/x64/7za.exe
 electronVersion: 28.3.3

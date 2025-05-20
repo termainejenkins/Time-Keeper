@@ -173,4 +173,149 @@ This ensures Electron can always find your JS bundle and assets.
    - Monitor CPU usage during transitions
    - Test on lower-end hardware
 
+## Packaging Issues
+
+### Problem: Symbolic Link Creation Errors
+**Symptoms:**
+- Error message: "Cannot create symbolic link: A required privilege is not held by the client"
+- Build process fails during code signing tool extraction
+- Repeated attempts to download and extract winCodeSign
+
+**Causes:**
+- Insufficient permissions on Windows
+- Code signing tools requiring symbolic links
+- Cross-platform build tools attempting to create macOS/Linux symlinks
+
+**Solutions:**
+1. For Windows builds:
+   - Run PowerShell as Administrator
+   - Or disable code signing verification in package.json:
+     ```json
+     "win": {
+       "verifyUpdateCodeSignature": false
+     }
+     ```
+2. For macOS/Linux builds:
+   - Ensure proper permissions on build directory
+   - Use sudo if necessary (not recommended for production builds)
+
+### Problem: Build Fails During Packaging
+**Symptoms:**
+- Build process fails with errors
+- Missing dependencies
+- Incomplete builds
+- Vite CJS deprecation warnings
+
+**Causes:**
+- Outdated dependencies
+- Incomplete build process
+- Platform-specific issues
+- Vite configuration issues
+
+**Solutions:**
+1. Clean the project:
+   ```bash
+   # Windows
+   Remove-Item -Recurse -Force node_modules, dist, release
+   
+   # macOS/Linux
+   rm -rf node_modules dist release
+   ```
+2. Reinstall dependencies:
+   ```bash
+   npm install
+   ```
+3. Ensure all build scripts are working:
+   ```bash
+   npm run build:renderer
+   npm run build:main
+   ```
+4. Check for platform-specific requirements:
+   - Windows: Visual Studio Build Tools
+   - macOS: Xcode Command Line Tools
+   - Linux: build-essential package
+
+### Problem: App Doesn't Start After Packaging
+**Symptoms:**
+- App crashes on launch
+- White screen
+- Missing assets
+- "Failed to load resource" errors
+
+**Causes:**
+- Incorrect asset paths
+- Missing dependencies
+- Build configuration issues
+- Vite base path configuration
+
+**Solutions:**
+1. Check the build configuration in `package.json`
+2. Verify asset paths in `vite.config.ts`:
+   ```typescript
+   export default defineConfig({
+     base: './', // Required for Electron
+     // ...
+   })
+   ```
+3. Test the app in development mode first
+4. Check the logs in:
+   - Windows: `%APPDATA%\Time Keeper\logs`
+   - macOS: `~/Library/Logs/Time Keeper`
+   - Linux: `~/.config/Time Keeper/logs`
+
+### Problem: Installer Issues
+**Symptoms:**
+- Installer fails to run
+- Installation incomplete
+- Permission errors
+- Missing shortcuts
+
+**Causes:**
+- Insufficient permissions
+- Corrupted installer
+- Antivirus interference
+- NSIS configuration issues
+
+**Solutions:**
+1. Run installer as administrator
+2. Temporarily disable antivirus
+3. Verify installer integrity
+4. Check NSIS configuration in package.json:
+   ```json
+   "nsis": {
+     "oneClick": false,
+     "allowToChangeInstallationDirectory": true,
+     "createDesktopShortcut": true,
+     "createStartMenuShortcut": true
+   }
+   ```
+
+### Best Practices
+1. **Before Packaging:**
+   - Test all features in development
+   - Update all dependencies
+   - Clean build directories
+   - Verify platform-specific requirements
+   - Check Vite configuration
+
+2. **During Packaging:**
+   - Monitor build logs
+   - Check for warnings
+   - Verify file sizes
+   - Test on clean system
+   - Use appropriate permissions
+
+3. **After Packaging:**
+   - Test installation process
+   - Verify all features
+   - Check file associations
+   - Test auto-updates
+   - Verify shortcuts and start menu entries
+
+4. **Platform-Specific:**
+   - Windows: Test on different Windows versions
+   - macOS: Test on different macOS versions
+   - Linux: Test on different distributions
+   - Consider using CI/CD for cross-platform builds
+
 _Add new issues and solutions here as they are discovered!_ 

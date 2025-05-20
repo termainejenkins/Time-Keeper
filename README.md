@@ -123,3 +123,104 @@ Setting `base: './'` ensures Electron can always find your JS bundle and assets.
 **How to fix:**
 - Set `base: './'` in your Vite config.
 - Rebuild your renderer. 
+
+## Packaging for Release
+
+### Prerequisites
+- Node.js 16 or later
+- npm 7 or later
+- Git
+- Platform-specific requirements:
+  - Windows: Visual Studio Build Tools
+  - macOS: Xcode Command Line Tools
+  - Linux: build-essential package
+
+### Building and Packaging
+
+#### Windows
+1. Open PowerShell as Administrator
+2. Navigate to the project directory
+3. Run the packaging script:
+   ```powershell
+   .\package-app.ps1
+   ```
+4. The packaged app will be in the `release` directory as `Time Keeper-Setup-1.0.0.exe`
+
+#### macOS/Linux
+1. Open Terminal
+2. Navigate to the project directory
+3. Make the script executable:
+   ```bash
+   chmod +x package-app.sh
+   ```
+4. Run the packaging script:
+   ```bash
+   ./package-app.sh
+   ```
+5. The packaged app will be in the `release` directory:
+   - macOS: `Time Keeper.dmg`
+   - Linux: `Time Keeper.AppImage`
+
+### Package Configuration
+The app is configured with the following packaging options:
+```json
+{
+  "build": {
+    "appId": "com.timekeeper.app",
+    "productName": "Time Keeper",
+    "win": {
+      "target": "nsis",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "publisherName": "Termaine Jenkins",
+      "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
+```
+
+### Installation
+- Windows: Run the `.exe` installer and follow the prompts
+- macOS: Mount the `.dmg` and drag the app to Applications
+- Linux: Make the `.AppImage` executable (`chmod +x`) and run it
+
+### Troubleshooting
+If you encounter any issues during packaging:
+
+1. **Symbolic Link Errors**
+   - Windows: Run PowerShell as Administrator
+   - macOS/Linux: Ensure you have the necessary permissions
+
+2. **Build Failures**
+   ```bash
+   # Windows
+   Remove-Item -Recurse -Force node_modules, dist, release
+   
+   # macOS/Linux
+   rm -rf node_modules dist release
+   ```
+   Then reinstall dependencies:
+   ```bash
+   npm install
+   ```
+
+3. **Platform-Specific Issues**
+   - Windows: Ensure Visual Studio Build Tools are installed
+   - macOS: Install Xcode Command Line Tools
+   - Linux: Install build-essential package
+
+4. **Code Signing**
+   - Windows: Code signing is disabled by default (`verifyUpdateCodeSignature: false`)
+   - macOS: Requires valid Apple Developer certificate
+   - Linux: No code signing required for AppImage 
