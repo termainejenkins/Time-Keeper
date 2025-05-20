@@ -232,46 +232,26 @@ const App: React.FC = () => {
   const [isPreviewAnimating, setIsPreviewAnimating] = useState(false);
   const [isCountingDown, setIsCountingDown] = useState(true);
 
-  // Calculate preview border color
-  const getPreviewBorderColor = () => {
-    return calculateBorderColor(previewTimeLeft, hudSettings.dynamicBorderColor, hudSettings.borderColors);
-  };
-
-  // Cleanup effect when component unmounts
-  useEffect(() => {
-    return () => {
-      // Reset animation state when component unmounts
-      setIsPreviewAnimating(false);
-      setPreviewTimeLeft(30 * 1000);
-      setIsCountingDown(true);
-      // If settings are still in memory, update them to disable preview
-      if (hudSettings.previewAnimation) {
-        setHudSettings(prev => ({ ...prev, previewAnimation: false }));
-      }
-    };
-  }, []);
-
   // Start/stop preview animation when HUD tab is selected/deselected and preview is enabled
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
     if (selected === 'hud' && hudSettings.dynamicBorderColor && hudSettings.previewAnimation) {
       setIsPreviewAnimating(true);
+      // Reset time and counting state when animation starts
+      setPreviewTimeLeft(30 * 1000);
+      setIsCountingDown(true);
+      
       interval = setInterval(() => {
         setPreviewTimeLeft(prev => {
-          if (isCountingDown) {
-            if (prev <= 0) {
-              setIsCountingDown(false);
-              return 0;
-            }
-            return prev - 1000;
-          } else {
-            if (prev >= 30 * 1000) {
-              setIsCountingDown(true);
-              return 30 * 1000;
-            }
-            return prev + 1000;
+          if (prev <= 0) {
+            setIsCountingDown(false);
+            return 0;
+          } else if (prev >= 30 * 1000) {
+            setIsCountingDown(true);
+            return 30 * 1000;
           }
+          return prev + (isCountingDown ? -1000 : 1000);
         });
       }, 1000); // Update every second for a 30-second cycle
     } else {
@@ -287,7 +267,37 @@ const App: React.FC = () => {
       }
       setIsPreviewAnimating(false);
     };
-  }, [selected, hudSettings.dynamicBorderColor, hudSettings.previewAnimation, isCountingDown]);
+  }, [selected, hudSettings.dynamicBorderColor, hudSettings.previewAnimation]);
+
+  // Reset preview animation when toggled
+  useEffect(() => {
+    if (hudSettings.previewAnimation) {
+      setPreviewTimeLeft(30 * 1000);
+      setIsCountingDown(true);
+    }
+  }, [hudSettings.previewAnimation]);
+
+  // Calculate preview border color
+  const getPreviewBorderColor = () => {
+    if (!hudSettings.dynamicBorderColor || !hudSettings.previewAnimation) {
+      return hudSettings.borderColors.normal;
+    }
+    return calculateBorderColor(previewTimeLeft, true, hudSettings.borderColors);
+  };
+
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset animation state when component unmounts
+      setIsPreviewAnimating(false);
+      setPreviewTimeLeft(30 * 1000);
+      setIsCountingDown(true);
+      // If settings are still in memory, update them to disable preview
+      if (hudSettings.previewAnimation) {
+        setHudSettings(prev => ({ ...prev, previewAnimation: false }));
+      }
+    };
+  }, []);
 
   const [startupSettings, setStartupSettings] = useState(defaultStartupSettings);
   const [activeTab, setActiveTab] = useState('tasks');
