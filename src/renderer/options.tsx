@@ -237,25 +237,32 @@ const App: React.FC = () => {
     let interval: NodeJS.Timeout | null = null;
 
     if (selected === 'hud' && hudSettings.dynamicBorderColor && hudSettings.previewAnimation) {
+      console.log('Starting preview animation');
       setIsPreviewAnimating(true);
-      // Reset time and counting state when animation starts
-      setPreviewTimeLeft(30 * 1000);
+      setPreviewTimeLeft(30 * 1000); // Start at 30 seconds
       setIsCountingDown(true);
       
       interval = setInterval(() => {
         setPreviewTimeLeft(prev => {
-          if (prev <= 0) {
-            setIsCountingDown(false);
-            return 0;
-          } else if (prev >= 30 * 1000) {
-            setIsCountingDown(true);
-            return 30 * 1000;
+          const newTime = prev + (isCountingDown ? -1000 : 1000);
+          // Scale the time for color calculation (30 seconds = 20 minutes)
+          const scaledTime = newTime * 40; // 30s * 40 = 20min
+          console.log('Preview time update:', { 
+            prev, 
+            newTime, 
+            isCountingDown,
+            scaledMinutesLeft: scaledTime / (1000 * 60)
+          });
+          
+          if (newTime <= 0) {
+            console.log('Restarting countdown');
+            return 30 * 1000; // Reset to 30 seconds
           }
-          return prev + (isCountingDown ? -1000 : 1000);
+          return newTime;
         });
-      }, 1000); // Update every second for a 30-second cycle
+      }, 1000);
     } else {
-      // Reset animation state when conditions are not met
+      console.log('Stopping preview animation');
       setIsPreviewAnimating(false);
       setPreviewTimeLeft(30 * 1000);
       setIsCountingDown(true);
@@ -272,6 +279,7 @@ const App: React.FC = () => {
   // Reset preview animation when toggled
   useEffect(() => {
     if (hudSettings.previewAnimation) {
+      console.log('Resetting preview animation');
       setPreviewTimeLeft(30 * 1000);
       setIsCountingDown(true);
     }
@@ -282,7 +290,15 @@ const App: React.FC = () => {
     if (!hudSettings.dynamicBorderColor || !hudSettings.previewAnimation) {
       return hudSettings.borderColors.normal;
     }
-    return calculateBorderColor(previewTimeLeft, true, hudSettings.borderColors);
+    // Scale the time for color calculation (30 seconds = 20 minutes)
+    const scaledTime = previewTimeLeft * 40;
+    const color = calculateBorderColor(scaledTime, true, hudSettings.borderColors);
+    console.log('Calculated border color:', { 
+      previewTimeLeft, 
+      scaledMinutesLeft: scaledTime / (1000 * 60),
+      color 
+    });
+    return color;
   };
 
   // Cleanup effect when component unmounts
