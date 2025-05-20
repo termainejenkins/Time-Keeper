@@ -30,6 +30,11 @@ const defaultHudSettings = {
     warning: '#ffa726',
     critical: '#ef5350'
   },
+  colorThresholds: {
+    warning: 50, // 50% remaining
+    critical: 5  // 5% remaining
+  },
+  timeDisplayFormat: 'minutes', // 'minutes' or 'percentage'
   previewAnimation: false,
   width: 320,
   height: 100,
@@ -566,8 +571,61 @@ const App: React.FC = () => {
                         </div>
                       )}
                       <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
+                        <div style={{ marginBottom: 16 }}>
+                          <label style={{ display: 'block', marginBottom: 8 }}>Time Display Format</label>
+                          <select
+                            value={hudSettings.timeDisplayFormat}
+                            onChange={e => setHudSettings({ 
+                              ...hudSettings, 
+                              timeDisplayFormat: e.target.value as 'minutes' | 'percentage'
+                            })}
+                            style={{ width: '100%', padding: '8px', borderRadius: 4 }}
+                          >
+                            <option value="minutes">Minutes Remaining</option>
+                            <option value="percentage">Percentage Remaining</option>
+                          </select>
+                        </div>
+                        <div style={{ marginBottom: 16 }}>
+                          <label style={{ display: 'block', marginBottom: 8 }}>Color Transition Thresholds</label>
+                          <div style={{ marginBottom: 8 }}>
+                            <label htmlFor="warning-threshold">Warning Color (at % remaining)</label>
+                            <input
+                              id="warning-threshold"
+                              type="number"
+                              min="1"
+                              max="99"
+                              value={hudSettings.colorThresholds.warning}
+                              onChange={e => setHudSettings({ 
+                                ...hudSettings, 
+                                colorThresholds: { 
+                                  ...hudSettings.colorThresholds, 
+                                  warning: Math.min(99, Math.max(1, Number(e.target.value)))
+                                }
+                              })}
+                              style={{ width: '100%', padding: '8px', borderRadius: 4 }}
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="critical-threshold">Critical Color (at % remaining)</label>
+                            <input
+                              id="critical-threshold"
+                              type="number"
+                              min="1"
+                              max="99"
+                              value={hudSettings.colorThresholds.critical}
+                              onChange={e => setHudSettings({ 
+                                ...hudSettings, 
+                                colorThresholds: { 
+                                  ...hudSettings.colorThresholds, 
+                                  critical: Math.min(99, Math.max(1, Number(e.target.value)))
+                                }
+                              })}
+                              style={{ width: '100%', padding: '8px', borderRadius: 4 }}
+                            />
+                          </div>
+                        </div>
                         <div style={{ marginBottom: 8 }}>
-                          <label htmlFor="normal-color">Normal Color (&gt;15 minutes)</label>
+                          <label htmlFor="normal-color">Normal Color (&gt;{hudSettings.colorThresholds.warning}% remaining)</label>
                           <input
                             id="normal-color"
                             type="color"
@@ -581,7 +639,7 @@ const App: React.FC = () => {
                           />
                         </div>
                         <div style={{ marginBottom: 8 }}>
-                          <label htmlFor="warning-color">Warning Color (5-15 minutes)</label>
+                          <label htmlFor="warning-color">Warning Color ({hudSettings.colorThresholds.critical}-{hudSettings.colorThresholds.warning}% remaining)</label>
                           <input
                             id="warning-color"
                             type="color"
@@ -595,7 +653,7 @@ const App: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label htmlFor="critical-color">Critical Color (&lt;5 minutes)</label>
+                          <label htmlFor="critical-color">Critical Color (&lt;{hudSettings.colorThresholds.critical}% remaining)</label>
                           <input
                             id="critical-color"
                             type="color"

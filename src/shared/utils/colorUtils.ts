@@ -1,58 +1,52 @@
+import { BorderColors } from '../types/hud';
+
 // Helper function to interpolate between two colors
-export const interpolateColor = (color1: string, color2: string, factor: number) => {
-  // Convert hex to RGB
-  const hex2rgb = (hex: string) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return { r, g, b };
-  };
-
-  // Convert RGB to hex
-  const rgb2hex = (r: number, g: number, b: number) => {
-    return '#' + [r, g, b].map(x => {
-      const hex = Math.round(x).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    }).join('');
-  };
-
-  const c1 = hex2rgb(color1);
-  const c2 = hex2rgb(color2);
-
-  return rgb2hex(
-    c1.r + (c2.r - c1.r) * factor,
-    c1.g + (c2.g - c1.g) * factor,
-    c1.b + (c2.b - c1.b) * factor
-  );
-};
+export function interpolateColor(color1: string, color2: string, factor: number): string {
+  const hex1 = color1.replace('#', '');
+  const hex2 = color2.replace('#', '');
+  
+  const r1 = parseInt(hex1.substring(0, 2), 16);
+  const g1 = parseInt(hex1.substring(2, 4), 16);
+  const b1 = parseInt(hex1.substring(4, 6), 16);
+  
+  const r2 = parseInt(hex2.substring(0, 2), 16);
+  const g2 = parseInt(hex2.substring(2, 4), 16);
+  const b2 = parseInt(hex2.substring(4, 6), 16);
+  
+  const r = Math.round(r1 + (r2 - r1) * factor);
+  const g = Math.round(g1 + (g2 - g1) * factor);
+  const b = Math.round(b1 + (b2 - b1) * factor);
+  
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
 
 // Calculate border color based on time left
-export const calculateBorderColor = (
+export function calculateBorderColor(
   timeLeft: number | null,
   dynamicBorderColor: boolean,
-  borderColors: { normal: string; warning: string; critical: string }
-) => {
-  if (!dynamicBorderColor || timeLeft === null) return borderColors.normal;
-  
-  const minutesLeft = timeLeft / (1000 * 60);
-  
-  // Define transition points
-  const criticalThreshold = 5;
-  const warningThreshold = 15;
-  const transitionRange = 2; // 2 minutes transition period
+  borderColors: BorderColors,
+  totalDuration: number | null = null,
+  colorThresholds: { warning: number; critical: number } = { warning: 50, critical: 5 }
+): string {
+  if (!dynamicBorderColor || timeLeft === null || totalDuration === null) {
+    return borderColors.normal;
+  }
 
-  if (minutesLeft <= criticalThreshold) {
+  // Calculate percentage remaining
+  const percentageRemaining = (timeLeft / totalDuration) * 100;
+
+  // Determine color based on percentage thresholds
+  if (percentageRemaining <= colorThresholds.critical) {
     return borderColors.critical;
-  } else if (minutesLeft <= criticalThreshold + transitionRange) {
-    // Transition from critical to warning
-    const factor = (minutesLeft - criticalThreshold) / transitionRange;
+  } else if (percentageRemaining <= colorThresholds.warning) {
+    // Calculate transition factor between critical and warning
+    const factor = (percentageRemaining - colorThresholds.critical) / 
+                  (colorThresholds.warning - colorThresholds.critical);
     return interpolateColor(borderColors.critical, borderColors.warning, factor);
-  } else if (minutesLeft <= warningThreshold) {
-    return borderColors.warning;
-  } else if (minutesLeft <= warningThreshold + transitionRange) {
-    // Transition from warning to normal
-    const factor = (minutesLeft - warningThreshold) / transitionRange;
+  } else {
+    // Calculate transition factor between warning and normal
+    const factor = (percentageRemaining - colorThresholds.warning) / 
+                  (100 - colorThresholds.warning);
     return interpolateColor(borderColors.warning, borderColors.normal, factor);
   }
-  return borderColors.normal;
-}; 
+} 

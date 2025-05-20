@@ -498,6 +498,19 @@ const HUD: React.FC = () => {
     };
   }, []);
 
+  const formatTimeLeft = (timeLeft: number | null, totalDuration: number, format: 'minutes' | 'percentage'): string => {
+    if (timeLeft === null) return '--:--';
+    
+    if (format === 'percentage') {
+      const percentage = Math.round((timeLeft / totalDuration) * 100);
+      return `${percentage}%`;
+    }
+    
+    const minutes = Math.floor(timeLeft / 60000);
+    const seconds = Math.floor((timeLeft % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   return (
     <motion.div
       ref={containerRef}

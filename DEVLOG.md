@@ -11,6 +11,13 @@ This document tracks the progress of development work on the Time Keeper app. Up
 - Implemented inline task editing for improved UX
 - Added visual feedback for editing state with shadows and spacing
 - Improved task update functionality with better error handling
+- Added customizable color transition thresholds
+  - Warning threshold (default: 50% of total time)
+  - Critical threshold (default: 5% of total time)
+- Added flexible time display format options
+  - Minutes and seconds (MM:SS)
+  - Percentage of total time remaining
+- Improved color transition logic to use percentage-based calculations
 
 ### Technical Improvements
 - Added TypeScript type annotations for error handling
@@ -27,6 +34,10 @@ This document tracks the progress of development work on the Time Keeper app. Up
   - Added proper error handling
   - Improved state management
   - Enhanced code organization
+- Updated color calculation to use percentage-based thresholds
+- Added type definitions for HUD settings and color thresholds
+- Enhanced time formatting to support multiple display modes
+- Improved state management for new settings
 
 ### Bug Fixes
 - Fixed task update functionality
@@ -53,6 +64,10 @@ This document tracks the progress of development work on the Time Keeper app. Up
 - Added visual feedback for editing state
 - Improved spacing and layout consistency
 - Enhanced accessibility with proper contrast ratios
+- Added input fields for customizing color thresholds
+- Added dropdown for selecting time display format
+- Updated color labels to reflect percentage-based thresholds
+- Improved preview animation to work with new percentage system
 
 ### UI/UX Improvements
 - Enhanced task update flow to prevent UI flickering:
@@ -86,12 +101,20 @@ This document tracks the progress of development work on the Time Keeper app. Up
 - Confirmed task timing calculations are accurate
 - Tested edge cases for recurring tasks
 - Validated task transitions and updates
+- Verified color transitions at custom threshold points
+- Confirmed accurate percentage calculations
+- Tested time display format switching
+- Validated preview animation with new settings
 
 ### Next Steps
 - Consider adding animations for edit transitions
 - Explore adding keyboard shortcuts for editing
 - Consider implementing batch edit functionality
 - Look into adding drag-and-drop reordering
+- Consider adding more time display formats (e.g., hours:minutes)
+- Explore additional color transition effects
+- Monitor performance with custom thresholds
+- Gather user feedback on threshold defaults
 
 ---
 
@@ -132,31 +155,36 @@ This document tracks the progress of development work on the Time Keeper app. Up
 - Implemented gradual color transitions for border changes
 - Added preview animation reset functionality when toggled
 - Improved options window with more descriptive information about dynamic colors
+- Optimized preview animation to run only when actively used:
+  - Only runs when HUD tab is selected and preview is enabled
+  - Automatically stops when switching tabs or closing window
+  - Properly cleans up resources when not in use
+  - Maintains smooth 30-second color transition cycle
+  - Scales time values to match real-world task durations
 
 ### Technical Improvements
-- Enhanced color transition logic for smoother visual feedback
-- Improved preview animation state management
-- Added comprehensive documentation for dynamic color behavior
-- Optimized color calculation and transition timing
+- Optimized color calculations for smoother transitions
+- Added comprehensive logging for debugging
+- Improved state management for preview animation
+- Enhanced cleanup logic to prevent memory leaks
+- Implemented proper component lifecycle management
 
 ### UI/UX Enhancements
-- Added smooth transitions between border colors based on task time remaining
-- Implemented color preview animation in options window
-- Enhanced options window with detailed explanations of color behavior
-- Improved visual feedback for task time status
+- Smooth color transitions in preview animation
+- Clear visual feedback for color states
+- Improved preview animation controls
+- Better performance through optimized rendering
 
 ### Testing Notes
-- Verified dynamic color transitions work smoothly
-- Confirmed preview animation resets properly when toggled
-- Validated color calculations for different time ranges
-- Tested edge cases for color transitions
-- Verified options window documentation clarity
+- Verified preview animation starts/stops correctly
+- Confirmed color transitions match real-world task durations
+- Tested cleanup on window close and tab switch
+- Validated memory usage during extended preview sessions
 
 ### Next Steps
 - Consider adding more color customization options
 - Explore additional visual feedback mechanisms
-- Consider implementing color presets
-- Look into adding color transition timing controls
+- Monitor performance in extended use cases
 
 ---
 
