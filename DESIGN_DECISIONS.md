@@ -253,6 +253,59 @@ These design choices prioritize modularity, maintainability, and a clean user ex
 
 ---
 
-## 13. Summary
+## 13. Dynamic Border Colors and Preview Animation
 
-These design choices prioritize modularity, maintainability, and a clean user experience. The recent improvements to text scaling and HUD sizing enhance the app's flexibility while maintaining its minimalist aesthetic. As the app grows, further improvements (shared settings store, advanced styling, more robust state management) are planned. 
+**Decision:**
+- Implemented dynamic border colors that change based on task time remaining
+- Added smooth color transitions between states
+- Created preview animation functionality in options window
+- Enhanced options window with detailed color behavior documentation
+
+**Rationale:**
+- Visual feedback helps users quickly understand task status
+- Smooth transitions reduce visual jarring
+- Preview animation helps users understand color behavior
+- Detailed documentation improves user understanding
+
+**Implementation Details:**
+- Color states:
+  - Normal: `#52b4ff` (blue) for tasks with sufficient time
+  - Warning: `#ffc524` (yellow) for tasks approaching deadline
+  - Critical: `#ff312e` (red) for tasks near or past deadline
+- Transition features:
+  - Smooth color interpolation between states
+  - Configurable transition timing
+  - Preview animation in options window
+  - Reset functionality when toggled
+
+**Design Principles Applied:**
+1. **Feedback**
+   - Clear visual indicators for task status
+   - Smooth transitions between states
+   - Immediate feedback on changes
+
+2. **Consistency**
+   - Uniform color scheme
+   - Consistent transition behavior
+   - Cohesive visual language
+
+3. **Usability**
+   - Intuitive color meanings
+   - Smooth transitions
+   - Clear documentation
+
+4. **Flexibility**
+   - Customizable colors
+   - Adjustable transition timing
+   - Preview functionality
+
+**Alternatives Considered:**
+- Instant color changes: rejected for poor UX
+- More color states: rejected for complexity
+- Separate preview window: rejected for unnecessary complexity
+
+---
+
+## 14. Summary
+
+These design choices prioritize modularity, maintainability, and a clean user experience. As the app grows, further improvements (shared settings store, advanced styling, more robust state management) are planned. 
