@@ -27,7 +27,7 @@ const windowParams = {
         nodeIntegration: false,
     },
 };
-const store = new electron_store_1.default();
+const store = new electron_store_1.default({ name: 'google' });
 async function authenticateWithGoogleCalendar() {
     const oauth = (0, electron_oauth2_1.default)(oauthConfig, windowParams);
     let tokens = store.get('google_tokens');
@@ -43,7 +43,10 @@ async function authenticateWithGoogleCalendar() {
     return tokens;
 }
 async function fetchGoogleCalendarEvents() {
-    const tokens = await authenticateWithGoogleCalendar();
+    const tokens = store.get('google_tokens');
+    if (!tokens) {
+        throw new Error('No Google tokens available for authentication.');
+    }
     const oauth2Client = new googleapis_1.google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
     oauth2Client.setCredentials(tokens);
     const calendar = googleapis_1.google.calendar({ version: 'v3', auth: oauth2Client });

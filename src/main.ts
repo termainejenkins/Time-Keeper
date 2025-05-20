@@ -87,29 +87,38 @@ function handleError(operation: string, fn: () => void) {
   }
 }
 
+// Update the store type definitions
+interface UpdateStore {
+  autoUpdate: boolean;
+}
+
+interface SettingsStore {
+  hudPlacement: string;
+  hudSettings: {
+    alwaysOnTop: boolean;
+    [key: string]: any;
+  };
+}
+
+interface StartupStore {
+  [key: string]: any;
+}
+
 class MainProcess {
   private mainWindow: BrowserWindow | null = null;
   private managementWindow: BrowserWindow | null = null;
   private tray: Tray | null = null;
-  private settingsStore = new Store<{ hudPlacement: string }>();
+  private settingsStore = new Store<SettingsStore>({ name: 'settings' });
   private updateStatus: string = 'idle';
   private updateInfo: any = null;
   private autoUpdateEnabled: boolean = true;
-  private updateStore = new Store<{ autoUpdate: boolean }>();
-  private startupStore = new Store({
-    name: 'startup-settings',
-    defaults: {
-      autoStart: false,
-      startTime: '09:00',
-      startDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-      startWithWindows: false
-    }
-  });
+  private updateStore = new Store<UpdateStore>({ name: 'updates' });
+  private startupStore = new Store<StartupStore>({ name: 'startup' });
 
   constructor() {
     handleError('App Initialization', () => {
       const endInit = startOperation('App Initialization');
-      this.autoUpdateEnabled = this.updateStore.get('autoUpdate', true);
+      this.autoUpdateEnabled = this.updateStore.get('autoUpdate') ?? true;
       this.init();
       endInit();
     });
@@ -262,10 +271,10 @@ class MainProcess {
       });
       // Add IPC handlers for startup settings
       ipcMain.handle('get-startup-settings', () => {
-        return this.startupStore.store;
+        return this.startupStore.get('store');
       });
       ipcMain.handle('update-startup-settings', (_event, settings) => {
-        this.startupStore.store = settings;
+        this.startupStore.set('store', settings);
         if (settings.startWithWindows) {
           this.setupWindowsStartup(true);
         } else {
@@ -335,8 +344,8 @@ class MainProcess {
     try {
       console.log('[DEBUG] createWindow called');
       const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-      const savedPlacement = this.settingsStore.get('hudPlacement', 'top-right');
-      const hudSettings = this.settingsStore.get('hudSettings', { alwaysOnTop: true });
+      const savedPlacement = this.settingsStore.get('hudPlacement') ?? 'top-right';
+      const hudSettings = this.settingsStore.get('hudSettings') ?? { alwaysOnTop: true };
       const appIconPath = this.getAppIconPathAndLog();
       this.mainWindow = new BrowserWindow({
         width: 320,
@@ -353,7 +362,7 @@ class MainProcess {
         }
       });
       // Set dock icon for macOS
-      if (process.platform === 'darwin' && appIconPath) {
+      if (process.platform === 'darwin' && appIconPath && app.dock) {
         app.dock.setIcon(appIconPath);
       }
       this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
@@ -410,7 +419,7 @@ class MainProcess {
       }
     });
     // Set dock icon for macOS
-    if (process.platform === 'darwin' && appIconPath) {
+    if (process.platform === 'darwin' && appIconPath && app.dock) {
       app.dock.setIcon(appIconPath);
     }
     this.managementWindow.loadFile(path.join(__dirname, 'renderer/options.html'));
@@ -563,8 +572,10 @@ class MainProcess {
 
   private shouldStartNow(): boolean {
     const endCheck = startOperation('Startup Check');
-    const settings = this.startupStore.store;
-    if (!settings.autoStart) {
+    const settings = this.startupStore.get('store');
+    const autoStart = settings?.autoStart ?? false; // Default to false if undefined
+
+    if (!autoStart) {
       endCheck();
       return false;
     }

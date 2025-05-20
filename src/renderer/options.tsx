@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
 import HUDPreview from './components/HUDPreview';
+import { calculateBorderColor } from '../shared/utils/colorUtils';
 
 console.log('Options.tsx loaded!');
 
@@ -229,15 +230,11 @@ const App: React.FC = () => {
 
   const [previewTimeLeft, setPreviewTimeLeft] = useState<number>(30 * 1000);
   const [isPreviewAnimating, setIsPreviewAnimating] = useState(false);
+  const [isCountingDown, setIsCountingDown] = useState(true);
 
   // Calculate preview border color
   const getPreviewBorderColor = () => {
-    if (!hudSettings.dynamicBorderColor) return hudSettings.borderColors.normal;
-    
-    const secondsLeft = previewTimeLeft / 1000;
-    if (secondsLeft <= 5) return hudSettings.borderColors.critical;
-    if (secondsLeft <= 15) return hudSettings.borderColors.warning;
-    return hudSettings.borderColors.normal;
+    return calculateBorderColor(previewTimeLeft, hudSettings.dynamicBorderColor, hudSettings.borderColors);
   };
 
   // Cleanup effect when component unmounts
@@ -246,6 +243,7 @@ const App: React.FC = () => {
       // Reset animation state when component unmounts
       setIsPreviewAnimating(false);
       setPreviewTimeLeft(30 * 1000);
+      setIsCountingDown(true);
       // If settings are still in memory, update them to disable preview
       if (hudSettings.previewAnimation) {
         setHudSettings(prev => ({ ...prev, previewAnimation: false }));
@@ -261,15 +259,26 @@ const App: React.FC = () => {
       setIsPreviewAnimating(true);
       interval = setInterval(() => {
         setPreviewTimeLeft(prev => {
-          // Cycle from 30 seconds down to 0 and back up
-          if (prev <= 0) return 30 * 1000;
-          return prev - 1000;
+          if (isCountingDown) {
+            if (prev <= 0) {
+              setIsCountingDown(false);
+              return 0;
+            }
+            return prev - 1000;
+          } else {
+            if (prev >= 30 * 1000) {
+              setIsCountingDown(true);
+              return 30 * 1000;
+            }
+            return prev + 1000;
+          }
         });
-      }, 100); // Update every 100ms for faster preview
+      }, 1000); // Update every second for a 30-second cycle
     } else {
       // Reset animation state when conditions are not met
       setIsPreviewAnimating(false);
       setPreviewTimeLeft(30 * 1000);
+      setIsCountingDown(true);
     }
 
     return () => {
@@ -278,7 +287,7 @@ const App: React.FC = () => {
       }
       setIsPreviewAnimating(false);
     };
-  }, [selected, hudSettings.dynamicBorderColor, hudSettings.previewAnimation]);
+  }, [selected, hudSettings.dynamicBorderColor, hudSettings.previewAnimation, isCountingDown]);
 
   const [startupSettings, setStartupSettings] = useState(defaultStartupSettings);
   const [activeTab, setActiveTab] = useState('tasks');
@@ -442,7 +451,7 @@ const App: React.FC = () => {
                     onChange={(e) => setHudSettings({ ...hudSettings, darkMode: e.target.checked })}
                   />
                   Dark Mode
-              </label>
+                </label>
               </div>
               <div>
                 <label>
@@ -451,8 +460,8 @@ const App: React.FC = () => {
                     checked={hudSettings.showCurrentTime}
                     onChange={(e) => setHudSettings({ ...hudSettings, showCurrentTime: e.target.checked })}
                   />
-                Show current time
-              </label>
+                  Show current time
+                </label>
               </div>
               <div>
                 <label>
@@ -461,8 +470,8 @@ const App: React.FC = () => {
                     checked={hudSettings.clickThrough}
                     onChange={(e) => setHudSettings({ ...hudSettings, clickThrough: e.target.checked })}
                   />
-                Enable click-through
-              </label>
+                  Enable click-through
+                </label>
               </div>
               <div>
                 <label>
@@ -471,8 +480,8 @@ const App: React.FC = () => {
                     checked={hudSettings.alwaysOnTop}
                     onChange={(e) => setHudSettings({ ...hudSettings, alwaysOnTop: e.target.checked })}
                   />
-                Always on Top
-              </label>
+                  Always on Top
+                </label>
               </div>
               <div>
                 <label>
@@ -481,8 +490,8 @@ const App: React.FC = () => {
                     checked={hudSettings.showBorder}
                     onChange={(e) => setHudSettings({ ...hudSettings, showBorder: e.target.checked })}
                   />
-                Show Border
-              </label>
+                  Show Border
+                </label>
               </div>
               {hudSettings.showBorder && (
                 <>
@@ -493,8 +502,8 @@ const App: React.FC = () => {
                         checked={hudSettings.dynamicBorderColor}
                         onChange={(e) => setHudSettings({ ...hudSettings, dynamicBorderColor: e.target.checked })}
                       />
-                    Dynamic Border Color
-                  </label>
+                      Dynamic Border Color
+                    </label>
                   </div>
                   {hudSettings.dynamicBorderColor && (
                     <>
@@ -503,10 +512,16 @@ const App: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={hudSettings.previewAnimation}
-                            onChange={(e) => setHudSettings({ ...hudSettings, previewAnimation: e.target.checked })}
+                            onChange={(e) => {
+                              setHudSettings({ ...hudSettings, previewAnimation: e.target.checked });
+                              // Reset preview time when enabling animation
+                              if (e.target.checked) {
+                                setPreviewTimeLeft(30 * 1000);
+                              }
+                            }}
                           />
-                        Enable Preview Animation
-                      </label>
+                          Enable Preview Animation
+                        </label>
                       </div>
                       {hudSettings.previewAnimation && (
                         <div style={{ 
@@ -526,7 +541,7 @@ const App: React.FC = () => {
                       )}
                       <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
                         <div style={{ marginBottom: 8 }}>
-                          <label htmlFor="normal-color">Normal Color</label>
+                          <label htmlFor="normal-color">Normal Color (&gt;15 minutes)</label>
                           <input
                             id="normal-color"
                             type="color"
@@ -540,7 +555,7 @@ const App: React.FC = () => {
                           />
                         </div>
                         <div style={{ marginBottom: 8 }}>
-                          <label htmlFor="warning-color">Warning Color</label>
+                          <label htmlFor="warning-color">Warning Color (5-15 minutes)</label>
                           <input
                             id="warning-color"
                             type="color"
@@ -554,7 +569,7 @@ const App: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label htmlFor="critical-color">Critical Color</label>
+                          <label htmlFor="critical-color">Critical Color (&lt;5 minutes)</label>
                           <input
                             id="critical-color"
                             type="color"

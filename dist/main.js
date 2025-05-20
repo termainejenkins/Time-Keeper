@@ -119,23 +119,15 @@ class MainProcess {
         this.mainWindow = null;
         this.managementWindow = null;
         this.tray = null;
-        this.settingsStore = new electron_store_1.default();
+        this.settingsStore = new electron_store_1.default({ name: 'settings' });
         this.updateStatus = 'idle';
         this.updateInfo = null;
         this.autoUpdateEnabled = true;
-        this.updateStore = new electron_store_1.default();
-        this.startupStore = new electron_store_1.default({
-            name: 'startup-settings',
-            defaults: {
-                autoStart: false,
-                startTime: '09:00',
-                startDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-                startWithWindows: false
-            }
-        });
+        this.updateStore = new electron_store_1.default({ name: 'updates' });
+        this.startupStore = new electron_store_1.default({ name: 'startup' });
         handleError('App Initialization', () => {
             const endInit = startOperation('App Initialization');
-            this.autoUpdateEnabled = this.updateStore.get('autoUpdate', true);
+            this.autoUpdateEnabled = this.updateStore.get('autoUpdate') ?? true;
             this.init();
             endInit();
         });
@@ -287,10 +279,10 @@ class MainProcess {
             });
             // Add IPC handlers for startup settings
             electron_1.ipcMain.handle('get-startup-settings', () => {
-                return this.startupStore.store;
+                return this.startupStore.get('store');
             });
             electron_1.ipcMain.handle('update-startup-settings', (_event, settings) => {
-                this.startupStore.store = settings;
+                this.startupStore.set('store', settings);
                 if (settings.startWithWindows) {
                     this.setupWindowsStartup(true);
                 }
@@ -362,8 +354,8 @@ class MainProcess {
         try {
             console.log('[DEBUG] createWindow called');
             const { width, height } = electron_1.screen.getPrimaryDisplay().workAreaSize;
-            const savedPlacement = this.settingsStore.get('hudPlacement', 'top-right');
-            const hudSettings = this.settingsStore.get('hudSettings', { alwaysOnTop: true });
+            const savedPlacement = this.settingsStore.get('hudPlacement') ?? 'top-right';
+            const hudSettings = this.settingsStore.get('hudSettings') ?? { alwaysOnTop: true };
             const appIconPath = this.getAppIconPathAndLog();
             this.mainWindow = new electron_1.BrowserWindow({
                 width: 320,
@@ -380,7 +372,7 @@ class MainProcess {
                 }
             });
             // Set dock icon for macOS
-            if (process.platform === 'darwin' && appIconPath) {
+            if (process.platform === 'darwin' && appIconPath && electron_1.app.dock) {
                 electron_1.app.dock.setIcon(appIconPath);
             }
             this.mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
@@ -437,7 +429,7 @@ class MainProcess {
             }
         });
         // Set dock icon for macOS
-        if (process.platform === 'darwin' && appIconPath) {
+        if (process.platform === 'darwin' && appIconPath && electron_1.app.dock) {
             electron_1.app.dock.setIcon(appIconPath);
         }
         this.managementWindow.loadFile(path.join(__dirname, 'renderer/options.html'));
@@ -592,8 +584,9 @@ class MainProcess {
     }
     shouldStartNow() {
         const endCheck = startOperation('Startup Check');
-        const settings = this.startupStore.store;
-        if (!settings.autoStart) {
+        const settings = this.startupStore.get('store');
+        const autoStart = settings?.autoStart ?? false; // Default to false if undefined
+        if (!autoStart) {
             endCheck();
             return false;
         }

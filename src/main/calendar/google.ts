@@ -26,12 +26,19 @@ const windowParams = {
   },
 };
 
-const store = new Store();
+interface GoogleTokens {
+  access_token: string;
+  refresh_token: string;
+  scope: string;
+  token_type: string;
+  expiry_date: number;
+}
+
+const store = new Store<{ google_tokens: GoogleTokens }>({ name: 'google' });
 
 export async function authenticateWithGoogleCalendar() {
   const oauth = ElectronOauth2(oauthConfig, windowParams);
-  let tokens = store.get('google_tokens') as any;
-
+  let tokens = store.get('google_tokens');
   if (!tokens) {
     tokens = await oauth.getAccessToken({
       scope: [
@@ -41,12 +48,14 @@ export async function authenticateWithGoogleCalendar() {
     });
     store.set('google_tokens', tokens);
   }
-
   return tokens;
 }
 
 export async function fetchGoogleCalendarEvents() {
-  const tokens = await authenticateWithGoogleCalendar();
+  const tokens = store.get('google_tokens');
+  if (!tokens) {
+    throw new Error('No Google tokens available for authentication.');
+  }
   const oauth2Client = new google.auth.OAuth2(
     CLIENT_ID,
     CLIENT_SECRET,

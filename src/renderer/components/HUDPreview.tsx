@@ -1,5 +1,6 @@
 import React from 'react';
 import ScaledText from './ScaledText';
+import { calculateBorderColor } from '../../shared/utils/colorUtils';
 
 interface HUDPreviewProps {
   settings: {
@@ -39,8 +40,8 @@ const HUDPreview: React.FC<HUDPreviewProps> = ({ settings }) => {
     padding
   } = settings;
 
-  // Calculate border color based on time left (for preview, we'll use normal color)
-  const borderColor = dynamicBorderColor ? borderColors.normal : borderColors.normal;
+  // Calculate border color based on time left (for preview, we'll use 10 minutes)
+  const borderColor = calculateBorderColor(10 * 60 * 1000, dynamicBorderColor, borderColors);
 
   return (
     <div
