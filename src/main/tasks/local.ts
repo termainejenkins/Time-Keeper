@@ -180,6 +180,15 @@ export function deleteTaskList(id: string) {
 
 export function getLocalTasks(): LocalTask[] {
   let list = getActiveList();
+  console.log('Getting local tasks:', {
+    activeListId: getActiveListId(),
+    tasks: list.tasks.map((t: LocalTask) => ({
+      title: t.title,
+      start: t.start,
+      end: t.end,
+      repeat: t.repeat
+    }))
+  });
   // Process expiration/archiving
   list.tasks = processTaskExpiration(list.tasks);
   saveActiveList(list);

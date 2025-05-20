@@ -345,6 +345,19 @@ const HUD: React.FC = () => {
       const now = new Date();
       setCurrentTime(now);
       const { currentTask, currentTaskTimeLeft, nextTask, nextTaskTimeLeft } = getCurrentAndNextTask(tasks, now);
+      console.log('Time update:', {
+        now: now.toISOString(),
+        currentTask: currentTask?.title,
+        currentTaskTimeLeft,
+        nextTask: nextTask?.title,
+        nextTaskTimeLeft,
+        tasks: tasks.map(t => ({
+          title: t.title,
+          start: t.start,
+          end: t.end,
+          repeat: t.repeat
+        }))
+      });
       setCurrentTask(currentTask);
       setNextTask(nextTask); // Always show next task
       setTimeLeft(currentTask ? currentTaskTimeLeft : nextTaskTimeLeft);
