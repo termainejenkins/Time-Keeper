@@ -107,4 +107,70 @@ This ensures Electron can always find your JS bundle and assets.
      ```
 - **Note:** This issue is usually resolved by a clean reinstall of dependencies. If the problem persists, check your package.json for any conflicting Electron version requirements.
 
+## Text Scaling and HUD Sizing Issues
+
+### Problem: Text Not Scaling Properly
+- **Symptoms:**
+  - Text appears too large or small for the container
+  - Text gets cut off or shows ellipsis unexpectedly
+  - Inconsistent text sizes across the HUD
+- **Causes:**
+  - Container width not properly set
+  - Minimum scale factor too restrictive
+  - Font size settings conflicting with scaling
+- **Solutions:**
+  1. Check container width settings in HUD options
+  2. Adjust minimum scale factor if text is too small
+  3. Ensure font size settings are appropriate for the container
+  4. Verify that the ScaledText component is receiving correct props
+
+### Problem: HUD Size Controls Not Working
+- **Symptoms:**
+  - Size changes not reflected in the HUD
+  - Preview not matching actual HUD
+  - Size presets not applying correctly
+- **Causes:**
+  - Settings not being saved properly
+  - IPC communication issues
+  - State management problems
+- **Solutions:**
+  1. Check localStorage for saved settings
+  2. Verify IPC communication in DevTools
+  3. Ensure all size-related state is properly initialized
+  4. Try resetting to default sizes and reapply
+
+### Problem: Performance Issues with Size Changes
+- **Symptoms:**
+  - Lag when changing sizes
+  - UI freezes during size updates
+  - High CPU usage during transitions
+- **Causes:**
+  - Too frequent state updates
+  - Heavy calculations during scaling
+  - Inefficient transition handling
+- **Solutions:**
+  1. Use debouncing for size input changes
+  2. Optimize scaling calculations
+  3. Reduce transition complexity
+  4. Consider using CSS transforms for better performance
+
+### Best Practices
+1. **Size Selection:**
+   - Start with preset sizes before customizing
+   - Consider screen resolution when choosing sizes
+   - Test different combinations of width and height
+   - Verify text readability at all sizes
+
+2. **Text Scaling:**
+   - Set appropriate minimum scale factor
+   - Use consistent font sizes across components
+   - Test with various text lengths
+   - Verify ellipsis behavior
+
+3. **Performance:**
+   - Use size presets when possible
+   - Avoid rapid size changes
+   - Monitor CPU usage during transitions
+   - Test on lower-end hardware
+
 _Add new issues and solutions here as they are discovered!_ 

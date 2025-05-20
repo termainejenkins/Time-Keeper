@@ -196,4 +196,63 @@ These design choices prioritize modularity, maintainability, and a clean user ex
 
 **Alternatives Considered:**
 - Hiding delete behind a context menu: rejected for discoverability.
-- Requiring confirmation for every delete: deferred for now, may be added as an option in the future. 
+- Requiring confirmation for every delete: deferred for now, may be added as an option in the future.
+
+---
+
+## 12. Text Scaling and HUD Sizing
+
+**Decision:**
+- Created a new `ScaledText` component for consistent text scaling across the HUD
+- Added comprehensive HUD sizing controls for width, height, font size, and padding
+- Implemented real-time preview of size changes in the options window
+
+**Rationale:**
+- Consistent text scaling was needed across all HUD components
+- Users needed more control over HUD dimensions and appearance
+- Real-time preview helps users understand the impact of size changes
+
+**Implementation Details:**
+- `ScaledText` component features:
+  - Automatic text scaling based on container width
+  - Configurable minimum scale factor
+  - Support for custom font properties
+  - Overflow handling with ellipsis
+  - Smooth transitions for size changes
+- Size controls include:
+  - Width: 240px to 800px (presets: Small, Medium, Large, Extra Large)
+  - Height: 60px to 300px (presets: Small, Medium, Large, Extra Large)
+  - Font size: 12px to 36px (presets: Small, Medium, Large, Extra Large)
+  - Padding: 4px to 40px (presets: Small, Medium, Large, Extra Large)
+
+**Design Principles Applied:**
+1. **Consistency**
+   - Uniform text scaling behavior
+   - Consistent size presets
+   - Cohesive visual hierarchy
+
+2. **Feedback**
+   - Real-time preview updates
+   - Visual feedback for size changes
+   - Clear size indicators
+
+3. **Accessibility**
+   - Maintained readability at all sizes
+   - Clear visual hierarchy
+   - Proper contrast ratios
+
+4. **Flexibility**
+   - Custom size inputs
+   - Preset size options
+   - Smooth transitions
+
+**Alternatives Considered:**
+- CSS-only scaling: rejected for lack of fine control
+- Fixed size presets only: rejected for limiting user control
+- Separate scaling for each component: rejected for inconsistency
+
+---
+
+## 13. Summary
+
+These design choices prioritize modularity, maintainability, and a clean user experience. The recent improvements to text scaling and HUD sizing enhance the app's flexibility while maintaining its minimalist aesthetic. As the app grows, further improvements (shared settings store, advanced styling, more robust state management) are planned. 
