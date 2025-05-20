@@ -15,6 +15,8 @@
     - Show time
     - Click-through
     - Opacity
+    - Dynamic border colors with customizable thresholds
+    - Time display format (minutes or percentage)
     - Size controls (width, height, font size, padding)
     - Text scaling
     - Reset
@@ -67,6 +69,9 @@ Time Keeper/
 - HUD preview and About section adapt to dark mode
 - Text scaling and HUD sizing working as expected
 - Size presets and custom options functioning properly
+- Color thresholds and time display format options implemented
+- Dynamic border colors with smooth transitions
+- Preview animation with percentage-based color changes
 
 ---
 

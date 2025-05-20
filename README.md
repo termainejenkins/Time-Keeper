@@ -9,7 +9,15 @@ A modern, cross-platform desktop HUD app for time and task management.
 - System tray with context menu
 - Management window with sidebar (Tasks, HUD Options, About)
 - Unified menu logic (tray + HUD hamburger)
-- HUD options: dark mode, show time, click-through, opacity, reset
+- HUD options:
+  - Dark mode
+  - Show time
+  - Click-through
+  - Opacity
+  - Dynamic border colors with customizable thresholds
+  - Time display format (minutes or percentage)
+  - Size controls (width, height, font size, padding)
+  - Reset
 
 ## Project Structure
 ```
