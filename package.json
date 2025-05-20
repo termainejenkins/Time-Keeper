@@ -58,8 +58,12 @@
     "package:linux": "npm run build && electron-builder --linux",
     "preview:renderer": "vite preview --config vite.config.ts",
     "test": "jest",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "prepare": "husky install"
   },
   "author": "Termaine Jenkins (aka TJ)",
   "license": "MIT",
@@ -81,7 +85,12 @@
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3",
     "vite": "^5.2.0",
-    "vite-plugin-static-copy": "^3.0.0"
+    "vite-plugin-static-copy": "^3.0.0",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
+    "@testing-library/user-event": "^14.5.2",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2"
   },
   "dependencies": {
     "electron-oauth2": "^3.0.0",
@@ -93,5 +102,11 @@
     "react-dom": "^18.3.1",
     "tailwindcss": "^3.4.17",
     "uuid": "^11.1.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
