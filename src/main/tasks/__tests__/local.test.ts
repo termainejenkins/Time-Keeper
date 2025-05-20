@@ -13,6 +13,7 @@ import {
   renameTaskList,
   deleteTaskList,
 } from '../local';
+import { LocalTask } from '../../../shared/types/task';
 
 // Mock electron-store
 jest.mock('electron-store');
@@ -57,8 +58,9 @@ describe('Local Task Management', () => {
       const task = {
         title: 'Test Task',
         description: 'Test Description',
-        dueDate: new Date(),
-        repeat: 'daily',
+        start: new Date().toISOString(),
+        end: new Date(Date.now() + 3600000).toISOString(), // 1 hour later
+        repeat: 'daily' as const,
       };
       const result = addLocalTask(task);
       expect(result).toHaveProperty('id');
@@ -72,11 +74,15 @@ describe('Local Task Management', () => {
 
     it('should update a task', () => {
       const taskId = 'test-id';
-      const updates = {
+      const task: LocalTask = {
+        id: taskId,
         title: 'Updated Task',
         description: 'Updated Description',
+        start: new Date().toISOString(),
+        end: new Date(Date.now() + 3600000).toISOString(),
+        completed: false,
       };
-      updateLocalTask(taskId, updates);
+      updateLocalTask(task);
       // Verify the store was called with the correct parameters
       expect(require('electron-store')).toHaveBeenCalled();
     });
