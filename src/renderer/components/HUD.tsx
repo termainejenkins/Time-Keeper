@@ -83,27 +83,36 @@ const HUD: React.FC = () => {
   const calculateBorderColor = (timeLeft: number | null) => {
     if (!dynamicBorderColor || timeLeft === null) return borderColors.normal;
     
-    const minutesLeft = timeLeft / (1000 * 60);
-    
-    // Define transition points
-    const criticalThreshold = 5;
-    const warningThreshold = 15;
-    const transitionRange = 2; // 2 minutes transition period
+    // Get total duration from current task or next task
+    const totalDuration = currentTask 
+      ? new Date(currentTask.end).getTime() - new Date(currentTask.start).getTime()
+      : nextTask 
+        ? new Date(nextTask.end).getTime() - new Date(nextTask.start).getTime()
+        : null;
 
-    if (minutesLeft <= criticalThreshold) {
+    if (!totalDuration) return borderColors.normal;
+
+    // Calculate percentage remaining
+    const percentageRemaining = (timeLeft / totalDuration) * 100;
+
+    // Get thresholds from settings
+    const warningThreshold = 50; // Default to 50%
+    const criticalThreshold = 5;  // Default to 5%
+
+    // Determine color based on percentage thresholds
+    if (percentageRemaining <= criticalThreshold) {
       return borderColors.critical;
-    } else if (minutesLeft <= criticalThreshold + transitionRange) {
-      // Transition from critical to warning
-      const factor = (minutesLeft - criticalThreshold) / transitionRange;
+    } else if (percentageRemaining <= warningThreshold) {
+      // Calculate transition factor between critical and warning
+      const factor = (percentageRemaining - criticalThreshold) / 
+                    (warningThreshold - criticalThreshold);
       return interpolateColor(borderColors.critical, borderColors.warning, factor);
-    } else if (minutesLeft <= warningThreshold) {
-      return borderColors.warning;
-    } else if (minutesLeft <= warningThreshold + transitionRange) {
-      // Transition from warning to normal
-      const factor = (minutesLeft - warningThreshold) / transitionRange;
+    } else {
+      // Calculate transition factor between warning and normal
+      const factor = (percentageRemaining - warningThreshold) / 
+                    (100 - warningThreshold);
       return interpolateColor(borderColors.warning, borderColors.normal, factor);
     }
-    return borderColors.normal;
   };
 
   // Update border color when time left changes

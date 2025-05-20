@@ -26,7 +26,7 @@ export function calculateBorderColor(
   dynamicBorderColor: boolean,
   borderColors: BorderColors,
   totalDuration: number | null = null,
-  colorThresholds: { warning: number; critical: number } = { warning: 50, critical: 5 }
+  colorThresholds: { normal: number; warning: number; critical: number } = { normal: 100, warning: 50, critical: 5 }
 ): string {
   if (!dynamicBorderColor || timeLeft === null || totalDuration === null) {
     return borderColors.normal;
@@ -43,10 +43,11 @@ export function calculateBorderColor(
     const factor = (percentageRemaining - colorThresholds.critical) / 
                   (colorThresholds.warning - colorThresholds.critical);
     return interpolateColor(borderColors.critical, borderColors.warning, factor);
-  } else {
+  } else if (percentageRemaining <= colorThresholds.normal) {
     // Calculate transition factor between warning and normal
     const factor = (percentageRemaining - colorThresholds.warning) / 
-                  (100 - colorThresholds.warning);
+                  (colorThresholds.normal - colorThresholds.warning);
     return interpolateColor(borderColors.warning, borderColors.normal, factor);
   }
+  return borderColors.normal;
 } 

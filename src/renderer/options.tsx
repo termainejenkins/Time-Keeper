@@ -31,8 +31,9 @@ const defaultHudSettings = {
     critical: '#ef5350'
   },
   colorThresholds: {
-    warning: 50, // 50% remaining
-    critical: 5  // 5% remaining
+    normal: 99,  // Start interpolating from normal at 99%
+    warning: 50,  // Start interpolating from warning at 50%
+    critical: 5   // Start interpolating from critical at 5%
   },
   timeDisplayFormat: 'minutes', // 'minutes' or 'percentage'
   previewAnimation: false,
@@ -297,10 +298,18 @@ const App: React.FC = () => {
     }
     // Scale the time for color calculation (30 seconds = 20 minutes)
     const scaledTime = previewTimeLeft * 40;
-    const color = calculateBorderColor(scaledTime, true, hudSettings.borderColors);
+    const totalDuration = 30 * 1000 * 40; // 30 seconds * 40 = 20 minutes
+    const color = calculateBorderColor(
+      scaledTime,
+      true,
+      hudSettings.borderColors,
+      totalDuration,
+      hudSettings.colorThresholds
+    );
     console.log('Calculated border color:', { 
       previewTimeLeft, 
       scaledMinutesLeft: scaledTime / (1000 * 60),
+      totalDuration: totalDuration / (1000 * 60),
       color 
     });
     return color;
@@ -567,7 +576,12 @@ const App: React.FC = () => {
                           transition: 'border-color 0.3s ease'
                         }}>
                           <div style={{ fontSize: '1.3em', fontWeight: 700, marginBottom: 4 }}>Sample Task</div>
-                          <div style={{ fontSize: '1em', color: '#666' }}>({Math.floor(previewTimeLeft / 1000)}s left)</div>
+                          <div style={{ fontSize: '1em', color: '#666' }}>
+                            {hudSettings.timeDisplayFormat === 'percentage' 
+                              ? `${Math.round((previewTimeLeft / (30 * 1000)) * 100)}% remaining`
+                              : `${Math.floor(previewTimeLeft / 1000)}s remaining`
+                            }
+                          </div>
                         </div>
                       )}
                       <div style={{ padding: '0 16px 10px', fontSize: 14 }}>
@@ -580,91 +594,135 @@ const App: React.FC = () => {
                               timeDisplayFormat: e.target.value as 'minutes' | 'percentage'
                             })}
                             style={{ width: '100%', padding: '8px', borderRadius: 4 }}
+                            aria-label="Time display format"
                           >
                             <option value="minutes">Minutes Remaining</option>
                             <option value="percentage">Percentage Remaining</option>
                           </select>
                         </div>
                         <div style={{ marginBottom: 16 }}>
-                          <label style={{ display: 'block', marginBottom: 8 }}>Color Transition Thresholds</label>
-                          <div style={{ marginBottom: 8 }}>
-                            <label htmlFor="warning-threshold">Warning Color (at % remaining)</label>
-                            <input
-                              id="warning-threshold"
-                              type="number"
-                              min="1"
-                              max="99"
-                              value={hudSettings.colorThresholds.warning}
-                              onChange={e => setHudSettings({ 
-                                ...hudSettings, 
-                                colorThresholds: { 
-                                  ...hudSettings.colorThresholds, 
-                                  warning: Math.min(99, Math.max(1, Number(e.target.value)))
-                                }
-                              })}
-                              style={{ width: '100%', padding: '8px', borderRadius: 4 }}
-                            />
+                          <label style={{ display: 'block', marginBottom: 8 }}>Color Settings</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {/* Normal Color */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <label htmlFor="normal-color" style={{ flex: 1 }}>Normal Color</label>
+                                  <input
+                                    id="normal-color"
+                                    type="color"
+                                    value={hudSettings.borderColors.normal}
+                                    onChange={e => setHudSettings({ 
+                                      ...hudSettings, 
+                                      borderColors: { ...hudSettings.borderColors, normal: e.target.value }
+                                    })}
+                                    style={{ width: 40, height: 24 }}
+                                    aria-label="Normal border color"
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <label htmlFor="normal-threshold" style={{ fontSize: 12, color: '#666' }}>Threshold:</label>
+                                  <input
+                                    id="normal-threshold"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    value={hudSettings.colorThresholds.normal}
+                                    onChange={e => setHudSettings({ 
+                                      ...hudSettings, 
+                                      colorThresholds: { 
+                                        ...hudSettings.colorThresholds, 
+                                        normal: Math.min(100, Math.max(1, Number(e.target.value)))
+                                      }
+                                    })}
+                                    style={{ width: 60, padding: '4px', borderRadius: 4 }}
+                                    aria-label="Normal threshold percentage"
+                                  />
+                                  <span style={{ fontSize: 12, color: '#666' }}>% remaining</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Warning Color */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <label htmlFor="warning-color" style={{ flex: 1 }}>Warning Color</label>
+                                  <input
+                                    id="warning-color"
+                                    type="color"
+                                    value={hudSettings.borderColors.warning}
+                                    onChange={e => setHudSettings({ 
+                                      ...hudSettings, 
+                                      borderColors: { ...hudSettings.borderColors, warning: e.target.value }
+                                    })}
+                                    style={{ width: 40, height: 24 }}
+                                    aria-label="Warning border color"
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <label htmlFor="warning-threshold" style={{ fontSize: 12, color: '#666' }}>Threshold:</label>
+                                  <input
+                                    id="warning-threshold"
+                                    type="number"
+                                    min="1"
+                                    max="99"
+                                    value={hudSettings.colorThresholds.warning}
+                                    onChange={e => setHudSettings({ 
+                                      ...hudSettings, 
+                                      colorThresholds: { 
+                                        ...hudSettings.colorThresholds, 
+                                        warning: Math.min(99, Math.max(1, Number(e.target.value)))
+                                      }
+                                    })}
+                                    style={{ width: 60, padding: '4px', borderRadius: 4 }}
+                                    aria-label="Warning threshold percentage"
+                                  />
+                                  <span style={{ fontSize: 12, color: '#666' }}>% remaining</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Critical Color */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <label htmlFor="critical-color" style={{ flex: 1 }}>Critical Color</label>
+                                  <input
+                                    id="critical-color"
+                                    type="color"
+                                    value={hudSettings.borderColors.critical}
+                                    onChange={e => setHudSettings({ 
+                                      ...hudSettings, 
+                                      borderColors: { ...hudSettings.borderColors, critical: e.target.value }
+                                    })}
+                                    style={{ width: 40, height: 24 }}
+                                    aria-label="Critical border color"
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <label htmlFor="critical-threshold" style={{ fontSize: 12, color: '#666' }}>Threshold:</label>
+                                  <input
+                                    id="critical-threshold"
+                                    type="number"
+                                    min="1"
+                                    max="99"
+                                    value={hudSettings.colorThresholds.critical}
+                                    onChange={e => setHudSettings({ 
+                                      ...hudSettings, 
+                                      colorThresholds: { 
+                                        ...hudSettings.colorThresholds, 
+                                        critical: Math.min(99, Math.max(1, Number(e.target.value)))
+                                      }
+                                    })}
+                                    style={{ width: 60, padding: '4px', borderRadius: 4 }}
+                                    aria-label="Critical threshold percentage"
+                                  />
+                                  <span style={{ fontSize: 12, color: '#666' }}>% remaining</span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <label htmlFor="critical-threshold">Critical Color (at % remaining)</label>
-                            <input
-                              id="critical-threshold"
-                              type="number"
-                              min="1"
-                              max="99"
-                              value={hudSettings.colorThresholds.critical}
-                              onChange={e => setHudSettings({ 
-                                ...hudSettings, 
-                                colorThresholds: { 
-                                  ...hudSettings.colorThresholds, 
-                                  critical: Math.min(99, Math.max(1, Number(e.target.value)))
-                                }
-                              })}
-                              style={{ width: '100%', padding: '8px', borderRadius: 4 }}
-                            />
-                          </div>
-                        </div>
-                        <div style={{ marginBottom: 8 }}>
-                          <label htmlFor="normal-color">Normal Color (&gt;{hudSettings.colorThresholds.warning}% remaining)</label>
-                          <input
-                            id="normal-color"
-                            type="color"
-                            value={hudSettings.borderColors.normal}
-                            onChange={e => setHudSettings({ 
-                              ...hudSettings, 
-                              borderColors: { ...hudSettings.borderColors, normal: e.target.value }
-                            })}
-                            style={{ width: '100%', height: 24 }}
-                            aria-label="Normal border color"
-                          />
-                        </div>
-                        <div style={{ marginBottom: 8 }}>
-                          <label htmlFor="warning-color">Warning Color ({hudSettings.colorThresholds.critical}-{hudSettings.colorThresholds.warning}% remaining)</label>
-                          <input
-                            id="warning-color"
-                            type="color"
-                            value={hudSettings.borderColors.warning}
-                            onChange={e => setHudSettings({ 
-                              ...hudSettings, 
-                              borderColors: { ...hudSettings.borderColors, warning: e.target.value }
-                            })}
-                            style={{ width: '100%', height: 24 }}
-                            aria-label="Warning border color"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="critical-color">Critical Color (&lt;{hudSettings.colorThresholds.critical}% remaining)</label>
-                          <input
-                            id="critical-color"
-                            type="color"
-                            value={hudSettings.borderColors.critical}
-                            onChange={e => setHudSettings({ 
-                              ...hudSettings, 
-                              borderColors: { ...hudSettings.borderColors, critical: e.target.value }
-                            })}
-                            style={{ width: '100%', height: 24 }}
-                            aria-label="Critical border color"
-                          />
                         </div>
                       </div>
                     </>
