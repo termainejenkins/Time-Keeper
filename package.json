@@ -36,7 +36,7 @@
                            },
                   "publish":  {
                                   "provider":  "github",
-                                  "owner":  "terma",
+                                  "owner":  "termainejenkins",
                                   "repo":  "TimeKeeper"
                               },
                   "asar":  true,
