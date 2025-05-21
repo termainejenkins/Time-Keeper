@@ -18,7 +18,6 @@
       "target": "nsis",
       "icon": "src/renderer/assets/icon.ico",
       "artifactName": "${productName}-Setup-${version}.${ext}",
-      "publisherName": "Termaine Jenkins",
       "verifyUpdateCodeSignature": false
     },
     "mac": {
@@ -34,6 +33,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "terma",
+      "repo": "TimeKeeper"
     },
     "asar": true,
     "asarUnpack": [
