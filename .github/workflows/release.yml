@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package application
+        run: npm run package:win
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/*.exe
+            release/*.yml
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Update version
+        run: |
+          $package = Get-Content package.json | ConvertFrom-Json
+          $version = $package.version
+          $parts = $version.Split('.')
+          $parts[2] = [int]$parts[2] + 1
+          $newVersion = $parts -join '.'
+          $package.version = $newVersion
+          $package | ConvertTo-Json -Depth 100 | Set-Content package.json
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "chore: bump version to ${{ env.VERSION }}"
+          git push 
